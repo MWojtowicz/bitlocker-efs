@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BitLocker vs. EFS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600&family=Anton&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1220; --panel:#131c2e; --panel2:#1a2540; --line:#2a3757;
+  --text:#e8edf7; --muted:#9aa7c2;
+  --bl:#2f8cff;      /* BitLocker – niebieski */
+  --efs:#2ecc71;     /* EFS – zielony (jak zielone nazwy plików w Eksploratorze) */
+  --warn:#ff5d5d; --gold:#ffc65c;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --meme:Impact,'Anton','Arial Black',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;color:var(--text);font-family:var(--sans);overflow:hidden}
+
+/* ---------- silnik slajdów ---------- */
+#deck{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:center center}
+.slide{position:absolute;inset:0;background:var(--bg);padding:56px 72px;display:none;flex-direction:column;overflow:hidden}
+.slide.active{display:flex;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.slide::after{content:attr(data-n);position:absolute;right:28px;bottom:18px;font-size:14px;color:var(--muted);font-family:var(--mono)}
+aside.notes{display:none}
+#progress{position:fixed;left:0;bottom:0;height:4px;background:linear-gradient(90deg,var(--bl),var(--efs));transition:width .3s;z-index:5}
+#help{position:fixed;left:12px;bottom:10px;font:12px var(--sans);color:#556;z-index:5;transition:opacity 1s}
+
+/* ---------- typografia ---------- */
+h1{font-size:68px;font-weight:800;line-height:1.05;letter-spacing:-1.5px}
+h2{font-size:44px;font-weight:800;letter-spacing:-.5px;margin-bottom:28px}
+h2 small{display:block;font-size:20px;font-weight:400;color:var(--muted);letter-spacing:0;margin-top:6px}
+.kicker{font:600 16px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:3px;margin-bottom:12px}
+.bl{color:var(--bl)} .efs{color:var(--efs)} .warn{color:var(--warn)} .gold{color:var(--gold)} .muted{color:var(--muted)}
+.big{font-size:30px;line-height:1.35}
+.center{align-items:center;justify-content:center;text-align:center}
+.grow{flex:1;min-height:0}
+.row{display:flex;gap:36px;align-items:center}
+.col{display:flex;flex-direction:column;gap:18px}
+.chips{display:flex;flex-wrap:wrap;gap:12px}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-size:22px;font-weight:600}
+.chip.bl{border-color:var(--bl);color:#cfe3ff} .chip.efs{border-color:var(--efs);color:#cff5df}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px}
+.caption{font-size:13px;color:var(--muted);margin-top:6px}
+img.photo{border-radius:16px;object-fit:cover;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+code,pre{font-family:var(--mono)}
+pre{background:#070c16;border:1px solid var(--line);border-radius:14px;padding:22px 26px;font-size:20px;line-height:1.6;color:#d6e2ff}
+pre .c{color:#62708f} pre .k{color:var(--gold)}
+
+/* ---------- memy: szablon + podpisy nałożone w HTML ---------- */
+.meme{position:relative;display:inline-block;border-radius:10px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#fff;flex:none}
+.meme img{display:block;width:100%;height:auto}
+.cap{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1;
+  font-family:var(--meme);color:#fff;text-transform:uppercase;letter-spacing:.5px;
+  text-shadow:2px 2px 0 #000,-2px 2px 0 #000,2px -2px 0 #000,-2px -2px 0 #000,0 2px 0 #000,2px 0 0 #000,0 -2px 0 #000,-2px 0 0 #000}
+.cap.dark{font-family:var(--sans);font-weight:800;color:#111;text-transform:none;text-shadow:none;letter-spacing:0}
+.meme-src{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
+
+/* ---------- strzałki/diagramy ---------- */
+.box{border-radius:14px;padding:14px 18px;text-align:center;font-weight:700;font-size:20px;border:2px solid var(--line);background:var(--panel)}
+.box small{display:block;font-weight:400;font-size:14px;color:var(--muted);margin-top:4px}
+.box.bl{border-color:var(--bl);background:#0f2340} .box.efs{border-color:var(--efs);background:#0f2a1d}
+.box.gold{border-color:var(--gold);background:#2b2410} .box.warn{border-color:var(--warn);background:#2e1414}
+.arrow{font-size:34px;color:var(--muted);text-align:center;flex:none}
+
+/* ---------- tabela ---------- */
+table.cmp{width:100%;border-collapse:collapse;font-size:20px}
+table.cmp th,table.cmp td{padding:11px 14px;border-bottom:1px solid var(--line);text-align:left}
+table.cmp th{font-size:24px}
+table.cmp td:first-child{color:var(--muted);width:30%}
+table.cmp tr:last-child td{border-bottom:none}
+
+/* ---------- makiety okien Windows ---------- */
+.win{background:#f3f3f3;color:#1b1b1b;border-radius:10px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5);font-family:'Segoe UI',var(--sans)}
+.win .bar{background:#e6e6e6;padding:8px 14px;font-size:14px;display:flex;justify-content:space-between}
+.win .bar span:last-child{letter-spacing:10px;color:#555}
+.explorer{width:100%;border-collapse:collapse;font-size:17px;background:#fff}
+.explorer th{font-weight:400;color:#555;text-align:left;padding:8px 14px;border-bottom:1px solid #ddd;font-size:14px}
+.explorer td{padding:8px 14px}
+.explorer td.g{color:#008a00}
+.recovery{background:#0067b8;color:#fff;font-family:'Segoe UI',var(--sans);padding:34px 40px;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.recovery h3{font-weight:300;font-size:32px;margin-bottom:16px}
+.recovery .field{background:#fff;color:#000;font-family:var(--mono);font-size:14px;padding:9px 12px;margin:14px 0;letter-spacing:1px}
+.recovery p{font-size:15px;opacity:.9;line-height:1.5}
+
+/* ---------- slajdy specjalne ---------- */
+.hero{background:linear-gradient(90deg,rgba(11,18,32,.97) 35%,rgba(11,18,32,.55)),url(img/foto/hdd.jpg) center/cover}
+.section{background:radial-gradient(ellipse at 70% 50%,#16294d 0,var(--bg) 70%)}
+.section h1{font-size:96px}
+.section .num{font:800 200px var(--sans);color:transparent;-webkit-text-stroke:2px var(--line);position:absolute;right:70px;bottom:20px}
+.section-img{position:absolute;right:80px;top:50%;transform:translateY(-50%) rotate(3deg);width:430px;height:330px}
+
+/* ---------- tryb wydruku / podglądu wszystkich slajdów ---------- */
+@media print{
+  html,body{overflow:visible;background:#fff}
+  #deck{position:static;transform:none!important;width:auto;height:auto}
+  .slide{display:flex!important;position:relative;width:1280px;height:720px;page-break-after:always;animation:none}
+  #progress,#help,#notesOverlay{display:none!important}
+}
+@page{size:1280px 720px;margin:0}
+
+#notesOverlay{position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;background:rgba(5,8,15,.94);border-top:2px solid var(--bl);
+  padding:18px 28px 28px;font-size:18px;line-height:1.55;display:none;z-index:10}
+#notesOverlay.on{display:block}
+#notesOverlay p{margin-bottom:10px}
+#notesOverlay .t{color:var(--gold);font:600 14px var(--mono);margin-bottom:8px}
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- ===================================================== 1 -->
+<section class="slide hero" data-time="0:45">
+  <div class="grow" style="display:flex;flex-direction:column;justify-content:center;max-width:720px">
+    <div class="kicker">Systemy operacyjne · ochrona danych</div>
+    <h1>Ochrona danych<br>w spoczynku</h1>
+    <div style="font-size:44px;font-weight:800;margin:22px 0 34px"><span class="bl">BitLocker</span> <span class="muted">vs.</span> <span class="efs">EFS</span></div>
+    <div class="muted" style="font-size:22px">Michał Wójtowicz · 2026</div>
+  </div>
+  <img src="img/foto/padlock.jpg" class="photo" style="position:absolute;right:80px;top:150px;width:330px;height:330px;border-radius:50%;border:6px solid var(--panel2)" alt="Kłódka z kluczami">
+  <aside class="notes">
+    <p>Dzień dobry. Tematem mojej prezentacji jest ochrona danych w spoczynku, a konkretnie dwa mechanizmy, które Microsoft wbudował w Windows: BitLocker oraz EFS, czyli Encrypting File System.</p>
+    <p>Oba szyfrują dane na dysku, oba są „za darmo” w systemie – a mimo to chronią przed zupełnie innymi zagrożeniami. Pod koniec chcę, żebyście potrafili odpowiedzieć na pytanie: kiedy który, a kiedy oba naraz.</p>
+    <p>Uprzedzam, że będzie trochę memów – bo bezpieczeństwo bez humoru to po prostu audyt.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 2 -->
+<section class="slide" data-time="0:30">
+  <h2>Plan na 30 minut</h2>
+  <div class="grow" style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+    <div class="card"><div style="font-size:54px">🧳</div><div class="big" style="margin-top:8px"><b>1.</b> Problem</div><div class="muted">dane w spoczynku</div></div>
+    <div class="card" style="border-color:var(--bl)"><div style="font-size:54px">💽</div><div class="big bl" style="margin-top:8px"><b>2.</b> BitLocker</div><div class="muted">cały wolumin</div></div>
+    <div class="card"><div style="font-size:54px">🥶</div><div class="big warn" style="margin-top:8px"><b>3.</b> Ataki</div><div class="muted">i jak się bronić</div></div>
+    <div class="card" style="border-color:var(--efs)"><div style="font-size:54px">📄</div><div class="big efs" style="margin-top:8px"><b>4.</b> EFS</div><div class="muted">pojedyncze pliki</div></div>
+    <div class="card"><div style="font-size:54px">🥊</div><div class="big" style="margin-top:8px"><b>5.</b> Starcie</div><div class="muted">porównanie</div></div>
+    <div class="card"><div style="font-size:54px">✅</div><div class="big gold" style="margin-top:8px"><b>6.</b> Wnioski</div><div class="muted">dobre praktyki</div></div>
+  </div>
+  <aside class="notes">
+    <p>Plan jest prosty. Najpierw powiemy sobie, czym w ogóle są dane w spoczynku i dlaczego hasło do Windowsa ich nie chroni.</p>
+    <p>Potem BitLocker – jak działa, skąd bierze klucze i jakie są na niego znane ataki. Następnie EFS, jego architektura i pułapki. Na koniec bezpośrednie porównanie i zestaw dobrych praktyk.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 3 -->
+<section class="slide" data-time="1:15">
+  <h2>Trzy stany danych</h2>
+  <div class="grow row" style="justify-content:space-around">
+    <div class="col center" style="opacity:.45">
+      <svg width="200" height="160" viewBox="0 0 200 160"><rect x="10" y="50" width="50" height="60" rx="8" fill="none" stroke="#9aa7c2" stroke-width="4"/><rect x="140" y="50" width="50" height="60" rx="8" fill="none" stroke="#9aa7c2" stroke-width="4"/><path d="M68 80h60" stroke="#9aa7c2" stroke-width="4" stroke-dasharray="8 6"/><path d="M120 70l12 10-12 10" fill="none" stroke="#9aa7c2" stroke-width="4"/></svg>
+      <div class="big"><b>W ruchu</b></div><div class="muted">TLS, VPN, SSH</div>
+    </div>
+    <div class="col center" style="opacity:.45">
+      <svg width="200" height="160" viewBox="0 0 200 160"><rect x="50" y="30" width="100" height="100" rx="10" fill="none" stroke="#9aa7c2" stroke-width="4"/><rect x="75" y="55" width="50" height="50" fill="#9aa7c2" opacity=".4"/><g stroke="#9aa7c2" stroke-width="4"><path d="M70 30V12M100 30V12M130 30V12M70 148v-18M100 148v-18M130 148v-18M50 60H32M50 100H32M168 60h-18M168 100h-18"/></g></svg>
+      <div class="big"><b>W użyciu</b></div><div class="muted">RAM, CPU</div>
+    </div>
+    <div class="col center">
+      <svg width="200" height="160" viewBox="0 0 200 160"><ellipse cx="100" cy="40" rx="70" ry="20" fill="#0f2340" stroke="#2f8cff" stroke-width="4"/><path d="M30 40v80c0 11 31 20 70 20s70-9 70-20V40" fill="#0f2340" stroke="#2f8cff" stroke-width="4"/><path d="M30 80c0 11 31 20 70 20s70-9 70-20" fill="none" stroke="#2f8cff" stroke-width="3"/><rect x="82" y="102" width="36" height="28" rx="4" fill="#ffc65c"/><path d="M88 102v-8a12 12 0 0124 0v8" fill="none" stroke="#ffc65c" stroke-width="5"/></svg>
+      <div class="big bl"><b>W spoczynku</b></div><div class="muted">dysk, SSD, pendrive, backup</div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>W bezpieczeństwie mówi się o trzech stanach danych. Dane w ruchu – przesyłane przez sieć – chronimy TLS-em, VPN-em, SSH. Dane w użyciu to to, co aktualnie siedzi w RAM-ie i w rejestrach procesora.</p>
+    <p>Nas dziś interesuje trzeci stan: dane w spoczynku, czyli wszystko, co leży zapisane na nośniku – dysk w laptopie, SSD w serwerze, pendrive, taśma z backupem.</p>
+    <p>Kluczowa obserwacja: nośnik jest fizycznym przedmiotem. Można go zgubić, ukraść, wyrzucić przy wymianie sprzętu. I wtedy żadne mechanizmy systemu operacyjnego już nie działają, bo system… nie jest uruchomiony.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 4 -->
+<section class="slide" data-time="1:15">
+  <h2>Scenariusz nr 1</h2>
+  <div class="grow row" style="justify-content:center">
+    <div>
+      <div class="meme" style="width:900px">
+        <img src="img/memy/this-is-fine.jpg" alt="Mem: This is fine">
+        <div class="cap" style="left:2%;top:2%;width:46%;height:26%;font-size:32px">Laptop służbowy<br>zostawiony w pociągu</div>
+        <div class="cap" style="left:52%;top:2%;width:46%;height:26%;font-size:32px">Dysk bez szyfrowania</div>
+      </div>
+      <div class="meme-src">mem „This is fine” (KC Green)</div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Scenariusz numer jeden, klasyka: ktoś zostawia służbowego laptopa w pociągu albo w taksówce. Sprzęt jest najmniej ważny – laptop kosztuje kilka tysięcy złotych. Dane na nim mogą kosztować dużo więcej.</p>
+    <p>Z perspektywy RODO zgubienie niezaszyfrowanego nośnika z danymi osobowymi to naruszenie, które trzeba zgłosić do UODO i często także osobom, których dane dotyczą. Jeżeli natomiast dane były skutecznie zaszyfrowane, ryzyko dla tych osób jest znikome i obowiązek zawiadamiania ich zwykle odpada.</p>
+    <p>Czyli szyfrowanie to nie tylko technika – to też bardzo konkretna oszczędność stresu i pieniędzy.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 5 -->
+<section class="slide" data-time="1:30">
+  <h2>„Ale przecież mam hasło do Windowsa!”</h2>
+  <div class="grow row" style="justify-content:center;gap:60px">
+    <div>
+      <div class="meme" style="width:470px">
+        <img src="img/memy/pikachu.jpg" alt="Mem: Surprised Pikachu">
+        <div class="cap dark" style="left:4%;top:2%;width:92%;height:36%;font-size:23px;flex-direction:column;align-items:flex-start;text-align:left;gap:8px">
+          <span>Ja: ustawiam silne hasło do konta Windows</span>
+          <span>Złodziej: wyjmuje dysk i podłącza go do swojego komputera</span>
+          <span>Ja:</span>
+        </div>
+      </div>
+      <div class="meme-src">mem „Surprised Pikachu”</div>
+    </div>
+    <div class="col" style="width:420px">
+      <div class="box">🔑 Hasło logowania<small>pilnuje drzwi do <b>uruchomionego</b> systemu</small></div>
+      <div class="box warn">🐧 Live USB / drugi komputer<small>czyta NTFS bez pytania o hasło</small></div>
+      <div class="box bl">🔒 Szyfrowanie<small>bez klucza – tylko szum</small></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Częsta odpowiedź brzmi: „ale ja mam hasło do Windowsa”. Problem w tym, że hasło logowania kontroluje dostęp do działającego systemu. Uprawnienia NTFS, listy ACL – to wszystko egzekwuje jądro Windowsa.</p>
+    <p>Wystarczy uruchomić komputer z pendrive'a z Linuksem albo wyjąć dysk i podłączyć go przez adapter USB do innego komputera. Linux czy inny Windows przeczyta NTFS i po prostu zignoruje nasze ACL-e. Hasło nawet nie zostanie sprawdzone.</p>
+    <p>Jedyną realną ochroną danych w spoczynku jest kryptografia: bez klucza na dysku jest tylko szum. Pytanie brzmi: co szyfrujemy i gdzie trzymamy klucz. I tu pojawiają się dwa podejścia.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 6 -->
+<section class="slide" data-time="1:30">
+  <h2>Dwa podejścia</h2>
+  <div class="grow" style="display:grid;grid-template-columns:1fr 1fr;gap:40px">
+    <div class="card col center" style="border-color:var(--bl)">
+      <svg width="300" height="230" viewBox="0 0 300 230">
+        <rect x="20" y="20" width="260" height="190" rx="18" fill="#0f2340" stroke="#2f8cff" stroke-width="4"/>
+        <g fill="#2f8cff" opacity=".85">
+          <rect x="40" y="40" width="70" height="40" rx="6"/><rect x="115" y="40" width="70" height="40" rx="6"/><rect x="190" y="40" width="70" height="40" rx="6"/>
+          <rect x="40" y="85" width="70" height="40" rx="6"/><rect x="115" y="85" width="70" height="40" rx="6"/><rect x="190" y="85" width="70" height="40" rx="6"/>
+          <rect x="40" y="130" width="70" height="40" rx="6"/><rect x="115" y="130" width="70" height="40" rx="6"/><rect x="190" y="130" width="70" height="40" rx="6"/>
+        </g>
+        <g font-family="JetBrains Mono,monospace" font-size="12" fill="#fff" text-anchor="middle"><text x="75" y="65">system</text><text x="150" y="65">pagefile</text><text x="225" y="65">hiberfil</text><text x="75" y="110">temp</text><text x="150" y="110">pliki</text><text x="225" y="110">MFT</text><text x="75" y="155">wolne</text><text x="150" y="155">logi</text><text x="225" y="155">…</text></g>
+        <circle cx="260" cy="195" r="28" fill="#ffc65c"/><text x="260" y="205" text-anchor="middle" font-size="28">🔒</text>
+      </svg>
+      <div class="big bl"><b>Cały wolumin</b></div>
+      <div class="muted" style="font-size:20px">Full Volume Encryption → <b>BitLocker</b></div>
+    </div>
+    <div class="card col center" style="border-color:var(--efs)">
+      <svg width="300" height="230" viewBox="0 0 300 230">
+        <path d="M20 50a14 14 0 0114-14h80l20 20h132a14 14 0 0114 14v126a14 14 0 01-14 14H34a14 14 0 01-14-14z" fill="#3a3220" stroke="#ffc65c" stroke-width="4"/>
+        <g font-family="JetBrains Mono,monospace" font-size="13" text-anchor="middle">
+          <rect x="45" y="80" width="60" height="76" rx="6" fill="#0f2a1d" stroke="#2ecc71" stroke-width="3"/><text x="75" y="175" fill="#2ecc71">umowa</text><text x="75" y="125" font-size="26">🔒</text>
+          <rect x="120" y="80" width="60" height="76" rx="6" fill="#1a2540" stroke="#9aa7c2" stroke-width="3"/><text x="150" y="175" fill="#9aa7c2">memy</text>
+          <rect x="195" y="80" width="60" height="76" rx="6" fill="#0f2a1d" stroke="#2ecc71" stroke-width="3"/><text x="225" y="175" fill="#2ecc71">wyniki</text><text x="225" y="125" font-size="26">🔒</text>
+        </g>
+      </svg>
+      <div class="big efs"><b>Wybrane pliki</b></div>
+      <div class="muted" style="font-size:20px">File-Level Encryption → <b>EFS</b></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Pierwsze podejście to szyfrowanie całego woluminu – Full Volume Encryption. Szyfrujemy każdy sektor partycji: system, plik stronicowania, plik hibernacji, pliki tymczasowe, a nawet wolne miejsce. Niczego nie da się zapomnieć zaszyfrować. To jest BitLocker.</p>
+    <p>Drugie podejście to szyfrowanie na poziomie plików. Wybieramy konkretne pliki lub foldery i tylko one są szyfrowane – za to kluczem przypisanym do konkretnego użytkownika. To jest EFS.</p>
+    <p>Już teraz widać różnicę filozofii: BitLocker odpowiada na pytanie „co jeśli ktoś ukradnie dysk”, a EFS na pytanie „co jeśli inny użytkownik tego samego komputera zajrzy do moich plików”.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 7 -->
+<section class="slide section" data-time="0:10">
+  <div class="grow" style="display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">Część 2</div>
+    <h1 class="bl">BitLocker</h1>
+    <div class="muted big" style="margin-top:14px">Drive Encryption</div>
+  </div>
+  <img src="img/foto/tpm-infineon.jpg" class="photo section-img" alt="Układ TPM Infineon na płycie głównej laptopa">
+  <aside class="notes">
+    <p>Przejdźmy zatem do BitLockera.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 8 -->
+<section class="slide" data-time="1:30">
+  <h2>BitLocker w pigułce</h2>
+  <div class="grow row" style="gap:50px;align-items:flex-start">
+    <div class="chips" style="width:520px;flex-direction:column;align-items:flex-start;gap:16px">
+      <span class="chip bl">📅 od Windows Vista (2007)</span>
+      <span class="chip bl">🔐 AES-XTS 128 / 256 bit</span>
+      <span class="chip bl">💽 cały wolumin, przezroczyście</span>
+      <span class="chip bl">🪟 Pro · Enterprise · Education</span>
+      <span class="chip">🏠 Home: „Szyfrowanie urządzenia”</span>
+      <span class="chip">🔌 BitLocker To Go – pendrive'y</span>
+    </div>
+    <div class="win" style="width:560px">
+      <div class="bar"><span>Szyfrowanie dysków funkcją BitLocker</span><span>–▢✕</span></div>
+      <div style="padding:22px 26px;background:#fff">
+        <div style="font-size:21px;margin-bottom:16px">Dysk systemu operacyjnego</div>
+        <div style="display:flex;gap:14px;align-items:center;border-top:1px solid #ddd;padding-top:16px">
+          <div style="font-size:42px">💽</div>
+          <div><b>C: Funkcja BitLocker włączona</b><div style="font-size:14px;color:#555">XTS-AES 128 · Ochrona: TPM</div></div>
+        </div>
+        <div style="margin:18px 0 0 58px;font-size:16px;line-height:2;color:#0067b8">
+          🛡 Wstrzymaj ochronę<br>🔑 Utwórz kopię zapasową klucza odzyskiwania<br>🔓 Wyłącz funkcję BitLocker
+        </div>
+        <div style="margin-top:18px;font-size:21px;border-top:1px solid #ddd;padding-top:14px">Stałe dyski danych · Dyski wymienne</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>BitLocker pojawił się w Windows Vista w 2007 roku. Dziś domyślnie używa trybu AES-XTS ze 128-bitowym kluczem, opcjonalnie 256 bitów. XTS to tryb zaprojektowany specjalnie do szyfrowania sektorów dysku – każdy sektor szyfrowany jest z innym „tweakiem”, więc identyczne dane w różnych miejscach wyglądają inaczej.</p>
+    <p>Działa przezroczyście: sterownik filtrujący pod systemem plików szyfruje przy zapisie i odszyfrowuje przy odczycie. Użytkownik niczego nie zauważa, a na nowoczesnych procesorach z instrukcjami AES-NI narzut wydajnościowy jest praktycznie niezauważalny.</p>
+    <p>Pełny BitLocker jest w edycjach Pro, Enterprise i Education. W Home mamy uproszczoną wersję nazwaną „Szyfrowanie urządzenia”, a od Windows 11 24H2 jest ona włączana automatycznie przy czystej instalacji. Do tego BitLocker To Go do szyfrowania pendrive'ów.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 9 -->
+<section class="slide" data-time="2:00">
+  <h2>Hierarchia kluczy<small>dlaczego zmiana PIN-u nie wymaga ponownego szyfrowania 1 TB</small></h2>
+  <div class="grow row" style="gap:18px;justify-content:center">
+    <div class="box" style="width:170px;height:150px;display:flex;flex-direction:column;justify-content:center">💽 Dane<small>sektory woluminu</small></div>
+    <div class="arrow">⟵</div>
+    <div class="box bl" style="width:190px;height:150px;display:flex;flex-direction:column;justify-content:center">FVEK<small>Full Volume<br>Encryption Key</small></div>
+    <div class="arrow">⟵</div>
+    <div class="box gold" style="width:190px;height:150px;display:flex;flex-direction:column;justify-content:center">VMK<small>Volume<br>Master Key</small></div>
+    <div class="arrow">⟵</div>
+    <div class="col" style="gap:9px;width:330px">
+      <div class="box" style="padding:9px;font-size:18px">🧩 TPM</div>
+      <div class="box" style="padding:9px;font-size:18px">🧩 TPM + PIN</div>
+      <div class="box" style="padding:9px;font-size:18px">🔌 Klucz startowy USB</div>
+      <div class="box" style="padding:9px;font-size:18px">🔢 Hasło odzyskiwania (48 cyfr)</div>
+      <div class="box" style="padding:9px;font-size:18px">🔤 Hasło (dyski danych)</div>
+    </div>
+  </div>
+  <div class="muted" style="text-align:center;font-size:18px">„A ⟵ B” = A jest zaszyfrowane kluczem B · protektory po prawej</div>
+  <aside class="notes">
+    <p>To jest najważniejszy slajd o BitLockerze. Dane na dysku są szyfrowane kluczem FVEK – Full Volume Encryption Key. On się w zasadzie nigdy nie zmienia.</p>
+    <p>FVEK jest zaszyfrowany kluczem VMK – Volume Master Key. A VMK jest zaszyfrowany niezależnie przez każdy z tak zwanych protektorów: przez TPM, przez TPM z PIN-em, kluczem na pendrive'ie, 48-cyfrowym hasłem odzyskiwania i tak dalej. Każdy protektor to po prostu inna „kopia” VMK zamknięta innym zamkiem.</p>
+    <p>Dzięki temu dodanie PIN-u czy zmiana hasła odzyskiwania polega na przeszyfrowaniu kilkudziesięciu bajtów, a nie całego terabajtowego dysku. A szybkie „wymazanie” dysku polega na zniszczeniu kluczy – bez nich dane są bezużyteczne.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 10 -->
+<section class="slide" data-time="2:00">
+  <h2>TPM – sejf na płycie głównej</h2>
+  <div class="grow row" style="gap:40px">
+    <div style="width:380px;flex:none">
+      <img src="img/foto/tpm.jpg" class="photo" style="width:380px;height:320px" alt="Moduł TPM wpięty w płytę główną">
+      <div class="caption">Moduł TPM (Wikimedia Commons)</div>
+    </div>
+    <div class="col grow" style="gap:12px">
+      <div class="row" style="gap:12px">
+        <div class="box" style="flex:1">UEFI</div><div class="arrow" style="font-size:26px">→</div>
+        <div class="box" style="flex:1">Secure Boot</div><div class="arrow" style="font-size:26px">→</div>
+        <div class="box" style="flex:1">Boot Manager</div>
+      </div>
+      <div class="arrow" style="font-size:26px">↓ pomiary (hashe) trafiają do rejestrów PCR</div>
+      <div class="box gold" style="font-size:24px">TPM: czy PCR = stan „zaufany”?</div>
+      <div class="row" style="gap:16px">
+        <div class="box efs" style="flex:1">✅ tak<small>odpieczętuje VMK → Windows startuje</small></div>
+        <div class="box warn" style="flex:1">❌ nie<small>ekran odzyskiwania BitLocker</small></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Najczęstszy protektor to TPM – Trusted Platform Module. To mały kryptoprocesor: kiedyś osobny układ na płycie, dziś coraz częściej wbudowany w procesor jako firmware TPM. Windows 11 wymaga TPM 2.0.</p>
+    <p>Podczas rozruchu każdy etap – firmware UEFI, Secure Boot, menedżer rozruchu – jest „mierzony”, czyli jego skrót trafia do rejestrów PCR w TPM. VMK jest „zapieczętowany” w TPM: TPM odda go tylko wtedy, gdy wartości PCR są takie same jak w chwili zapieczętowania.</p>
+    <p>Efekt: jeśli ktoś wyjmie dysk do innego komputera albo podmieni bootloader, TPM klucza nie wyda. Ale uwaga – w trybie „tylko TPM” klucz jest wydawany automatycznie, bez udziału użytkownika. Zapamiętajcie to, wrócimy do tego przy atakach.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 11 -->
+<section class="slide" data-time="1:45">
+  <h2>Klucz odzyskiwania</h2>
+  <div class="grow row" style="gap:40px;justify-content:center">
+    <div class="recovery" style="width:520px">
+      <h3>Odzyskiwanie funkcji BitLocker</h3>
+      <p>Wprowadź klucz odzyskiwania dla tego dysku</p>
+      <div class="field">______-______-______-______-<br>______-______-______-______</div>
+      <p>Identyfikator klucza: 7A3F2C1D<br>Więcej informacji: aka.ms/recoverykeyfaq</p>
+      <p style="margin-top:14px;opacity:.75">Naciśnij Enter, aby kontynuować · Esc, aby uzyskać więcej opcji</p>
+    </div>
+    <div>
+      <div class="meme" style="width:330px">
+        <img src="img/memy/harold.jpg" alt="Mem: Hide the Pain Harold">
+        <div class="cap" style="left:2%;top:1%;width:96%;height:16%;font-size:21px">Aktualizacja BIOS-u<br>w piątek o 16:00</div>
+        <div class="cap" style="left:2%;bottom:1%;width:96%;height:16%;font-size:21px">Gdzie jest klucz<br>odzyskiwania?</div>
+      </div>
+      <div class="meme-src">mem „Hide the Pain Harold”</div>
+    </div>
+  </div>
+  <div class="chips" style="justify-content:center">
+    <span class="chip">☁️ konto Microsoft</span><span class="chip">🏢 AD / Entra ID</span><span class="chip">🖨 wydruk</span><span class="chip">📄 plik</span>
+  </div>
+  <aside class="notes">
+    <p>Skoro TPM odmawia wydania klucza przy każdej zmianie w łańcuchu rozruchu, to co się dzieje po aktualizacji BIOS-u, zmianie ustawień Secure Boot albo przełożeniu dysku? Dostajemy ten niebieski ekran: prośbę o 48-cyfrowy klucz odzyskiwania.</p>
+    <p>I tu jest największe praktyczne ryzyko BitLockera – nie złodziej, tylko my sami. Bez klucza odzyskiwania dane są stracone. Nie ma tylnej furtki, Microsoft też ich nie odzyska.</p>
+    <p>Dlatego klucz trzeba zapisać: na prywatnym komputerze robi to automatycznie konto Microsoft, w firmie Active Directory albo Entra ID przez Intune. Ewentualnie wydruk w sejfie. Dobra praktyka dla adminów: przed aktualizacją firmware'u wstrzymać BitLockera na jeden restart.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 12 -->
+<section class="slide" data-time="1:30">
+  <h2>BitLocker w praktyce</h2>
+  <div class="grow row" style="gap:36px;align-items:flex-start">
+    <pre style="flex:1"><span class="c"># stan szyfrowania</span>
+<span class="k">manage-bde</span> -status
+
+<span class="c"># włącz na C: z hasłem odzyskiwania</span>
+<span class="k">manage-bde</span> -on C: -RecoveryPassword
+
+<span class="c"># dodaj protektor TPM + PIN</span>
+<span class="k">manage-bde</span> -protectors -add C: -TPMAndPIN
+
+<span class="c"># wstrzymaj na 1 restart (np. aktualizacja BIOS)</span>
+<span class="k">Suspend-BitLocker</span> -MountPoint C: -RebootCount 1</pre>
+    <div style="width:260px;flex:none">
+      <img src="img/foto/usb.jpg" class="photo" style="width:260px;height:340px" alt="Pendrive USB">
+      <div class="caption">BitLocker To Go – szyfrowany pendrive (FAT32/exFAT)</div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Krótko o praktyce. Oprócz graficznego panelu mamy narzędzie wiersza poleceń manage-bde oraz cmdlety PowerShella. Sprawdzamy stan, włączamy szyfrowanie, dodajemy protektory.</p>
+    <p>Przy włączaniu na nowym dysku warto wybrać opcję „szyfruj tylko zajęte miejsce” – jest dużo szybsza. Na dysku, który był już używany, lepiej zaszyfrować całość, bo w „wolnym” miejscu mogą leżeć pozostałości starych plików.</p>
+    <p>BitLocker To Go działa także na pendrive'ach z FAT32 i exFAT. Taki pendrive po podłączeniu pyta o hasło – i to jest chyba najprostszy sposób, żeby nie zgubić danych razem z nośnikiem za 20 złotych.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 13 -->
+<section class="slide section" data-time="0:10">
+  <div class="grow" style="display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">Część 3</div>
+    <h1 class="warn">Ataki</h1>
+    <div class="muted big" style="margin-top:14px">czyli: „nic nie jest niezniszczalne”</div>
+  </div>
+  <img src="img/foto/pico.jpg" class="photo section-img" alt="Raspberry Pi Pico">
+  <aside class="notes">
+    <p>Skoro BitLocker jest taki dobry, to zobaczmy, jak się go łamie. A raczej – jak się go obchodzi, bo nikt nie łamie samego AES-a.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 14 -->
+<section class="slide" data-time="2:00">
+  <h2>Nie łamiemy AES-a. Kradniemy klucz.</h2>
+  <div class="grow" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+    <div class="card col" style="gap:10px">
+      <svg viewBox="0 0 200 120" width="100%" height="120"><rect x="10" y="35" width="180" height="50" rx="4" fill="#1a2540" stroke="#9aa7c2" stroke-width="3"/><g fill="#2f8cff"><rect x="25" y="45" width="25" height="30"/><rect x="60" y="45" width="25" height="30"/><rect x="95" y="45" width="25" height="30"/><rect x="130" y="45" width="25" height="30"/></g><g stroke="#9aa7c2" stroke-width="2"><path d="M20 85v10M35 85v10M50 85v10M65 85v10M80 85v10M95 85v10M110 85v10M125 85v10M140 85v10M155 85v10M170 85v10"/></g><text x="172" y="30" font-size="40" text-anchor="middle">❄️</text></svg>
+      <b style="font-size:26px">Cold boot</b>
+      <div class="muted" style="font-size:19px;line-height:1.45">zamrożony RAM zachowuje klucze przez sekundy-minuty<br><i>Princeton, 2008</i></div>
+    </div>
+    <div class="card col" style="gap:10px">
+      <img src="img/foto/pico.jpg" style="width:100%;height:120px;object-fit:cover;border-radius:10px" alt="Raspberry Pi Pico">
+      <b style="font-size:26px">TPM sniffing</b>
+      <div class="muted" style="font-size:19px;line-height:1.45">podsłuch VMK na magistrali LPC/SPI<br><i>Pico za ~10 $, 2024</i></div>
+    </div>
+    <div class="card col" style="gap:10px">
+      <svg viewBox="0 0 200 120" width="100%" height="120"><rect x="40" y="40" width="120" height="40" rx="20" fill="#1a2540" stroke="#ffc65c" stroke-width="4"/><path d="M108 22l-22 38h18l-12 38 30-46h-18l12-30z" fill="#ffc65c"/></svg>
+      <b style="font-size:26px">DMA</b>
+      <div class="muted" style="font-size:19px;line-height:1.45">Thunderbolt / PCIe czyta pamięć z pominięciem CPU</div>
+    </div>
+    <div class="card col" style="gap:10px">
+      <svg viewBox="0 0 200 120" width="100%" height="120"><rect x="70" y="10" width="60" height="36" rx="5" fill="#1a2540" stroke="#ff5d5d" stroke-width="3"/><rect x="20" y="78" width="60" height="36" rx="5" fill="#1a2540" stroke="#9aa7c2" stroke-width="3"/><rect x="120" y="78" width="60" height="36" rx="5" fill="#1a2540" stroke="#9aa7c2" stroke-width="3"/><path d="M100 46v16M50 62h100M50 62v16M150 62v16" stroke="#9aa7c2" stroke-width="3" fill="none"/><text x="100" y="34" text-anchor="middle" font-family="JetBrains Mono" font-size="14" fill="#ff5d5d">PXE</text></svg>
+      <b style="font-size:26px">bitpixie</b>
+      <div class="muted" style="font-size:19px;line-height:1.45">rozruch sieciowy starego bootloadera (CVE-2023-21563)<br><i>38C3, 2024</i></div>
+    </div>
+  </div>
+  <div class="box warn" style="margin-top:22px;font-size:22px">Wspólny mianownik: <u>tryb „tylko TPM”</u> – klucz wydawany bez udziału człowieka</div>
+  <aside class="notes">
+    <p>Cztery znane klasy ataków. Pierwszy – cold boot, opisany przez badaczy z Princeton w 2008 roku. Pamięć RAM po odcięciu zasilania nie traci danych natychmiast, a schłodzona sprężonym powietrzem trzyma je dłużej. Można przełożyć kości do innej maszyny i wyszukać w zrzucie klucze AES.</p>
+    <p>Drugi – podsłuch TPM. Jeśli TPM jest osobnym układem, VMK płynie do procesora po magistrali LPC lub SPI otwartym tekstem. W 2024 roku pokazano to na laptopie Lenovo z Raspberry Pi Pico za około 10 dolarów – całość w mniej niż minutę.</p>
+    <p>Trzeci – DMA: urządzenia na Thunderbolcie czy PCIe mogą czytać pamięć bezpośrednio. Czwarty – bitpixie, pokazany na kongresie 38C3 w grudniu 2024: uruchamia się przez sieć stary, podatny menedżer rozruchu, który zostawia VMK w pamięci.</p>
+    <p>Wspólny mianownik: we wszystkich przypadkach komputer sam, automatycznie odszyfrowuje VMK. Zapamiętajmy to.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 15 -->
+<section class="slide" data-time="1:00">
+  <h2>TPM sniffing w jednym obrazku</h2>
+  <div class="grow row" style="justify-content:center">
+    <div>
+      <div class="meme" style="width:860px">
+        <img src="img/memy/always-has-been.png" alt="Mem: Always has been">
+        <div class="cap" style="left:2%;top:4%;width:56%;height:22%;font-size:34px">Czekaj, klucz VMK leci do CPU<br>otwartym tekstem po magistrali?</div>
+        <div class="cap" style="left:58%;top:4%;width:40%;height:22%;font-size:40px">Zawsze leciał</div>
+      </div>
+      <div class="meme-src">mem „Always has been” · dotyczy dyskretnych układów TPM; fTPM w CPU jest odporny na podsłuch magistrali</div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Ten atak najlepiej podsumowuje ten mem. Wiele osób zakłada, że TPM to magiczna czarna skrzynka i klucz nigdy jej nie opuszcza. Tymczasem w BitLockerze TPM wydaje VMK procesorowi – i jeśli robi to po fizycznej magistrali na płycie, to wystarczy się do niej podpiąć.</p>
+    <p>Ważne zastrzeżenie: dotyczy to dyskretnych układów TPM. Firmware TPM wbudowany w procesor – Intel PTT, AMD fTPM – nie ma zewnętrznej magistrali do podsłuchania. A protokół TPM 2.0 przewiduje szyfrowanie sesji, tylko BitLocker go w tym miejscu nie używał.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 16 -->
+<section class="slide" data-time="1:00">
+  <h2>Obrona</h2>
+  <div class="grow row" style="justify-content:center;gap:50px">
+    <div>
+      <div class="meme" style="width:480px">
+        <img src="img/memy/drake.jpg" alt="Mem: Drake Hotline Bling">
+        <div class="cap dark" style="left:50%;top:0;width:50%;height:50%;font-size:30px;padding:16px">Tylko TPM<br>(start bez pytania)</div>
+        <div class="cap dark" style="left:50%;top:50%;width:50%;height:50%;font-size:30px;padding:16px">TPM + PIN<br>przed startem</div>
+      </div>
+      <div class="meme-src">mem „Drake Hotline Bling”</div>
+    </div>
+    <div class="col" style="width:400px">
+      <div class="box efs">🔢 PIN przed rozruchem<small>TPM nic nie wyda bez człowieka</small></div>
+      <div class="box efs">🛡 Kernel DMA Protection<small>IOMMU blokuje Thunderbolt</small></div>
+      <div class="box efs">🔄 aktualizacje + nowe certyfikaty Secure Boot<small>na bitpixie</small></div>
+      <div class="box efs">💤 hibernacja zamiast uśpienia<small>klucz znika z RAM</small></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Najskuteczniejsza obrona przed wszystkimi czterema atakami jest jedna: PIN przed rozruchem. Wtedy TPM wyda VMK dopiero po podaniu PIN-u – złodziej, który ma sam laptop, nie ma czego podsłuchiwać. TPM dodatkowo chroni PIN przed zgadywaniem, blokując się po kilku błędnych próbach.</p>
+    <p>Do tego Kernel DMA Protection, czyli IOMMU blokujące niezaufane urządzenia, regularne aktualizacje razem z migracją na nowe certyfikaty Secure Boot z 2023 roku – to łata na bitpixie – oraz używanie hibernacji zamiast uśpienia, bo w uśpieniu klucz siedzi w RAM-ie.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 17 -->
+<section class="slide" data-time="0:45">
+  <h2>Pułapka: „Wstrzymaj ochronę”</h2>
+  <div class="grow row" style="justify-content:center;gap:50px">
+    <div>
+      <div class="meme" style="width:400px">
+        <img src="img/memy/same-picture.jpg" alt="Mem: They're the same picture">
+        <div class="cap dark" style="left:5%;top:3%;width:43%;height:21%;font-size:21px;transform:rotate(-4deg)">BitLocker<br>wstrzymany</div>
+        <div class="cap dark" style="left:52%;top:5%;width:43%;height:21%;font-size:21px;transform:rotate(5deg)">Dysk bez<br>szyfrowania</div>
+      </div>
+      <div class="meme-src">mem „They're the same picture” (The Office)</div>
+    </div>
+    <div class="col" style="width:440px">
+      <div class="box gold" style="font-size:24px">🔓 „clear key”<small>VMK zapisany na dysku jawnie</small></div>
+      <div class="big muted" style="font-size:22px">Dane nadal zaszyfrowane…<br>ale klucz leży obok.<br><br>➡ Wstrzymanie tylko na czas restartu.</div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Jeszcze jedna pułapka. Opcja „Wstrzymaj ochronę” nie odszyfrowuje dysku – ale zapisuje na nim VMK w postaci jawnej, tak zwany clear key. Dane formalnie są zaszyfrowane, tylko klucz leży tuż obok. Dla złodzieja to praktycznie to samo, co dysk bez szyfrowania.</p>
+    <p>Dlatego wstrzymujemy ochronę tylko na czas restartu, najlepiej z parametrem RebootCount, który sam ją przywróci.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 18 -->
+<section class="slide section" data-time="0:10">
+  <div class="grow" style="display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">Część 4</div>
+    <h1 class="efs">EFS</h1>
+    <div class="muted big" style="margin-top:14px">Encrypting File System</div>
+  </div>
+  <img src="img/foto/love-locks.jpg" class="photo section-img" alt="Kłódki na moście w Lublanie">
+  <aside class="notes">
+    <p>Teraz drugi bohater – EFS. Tu zamiast jednej wielkiej kłódki na cały dysk mamy mnóstwo małych kłódek na poszczególnych plikach – trochę jak na tym moście w Lublanie.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 19 -->
+<section class="slide" data-time="1:30">
+  <h2>EFS w pigułce</h2>
+  <div class="grow row" style="gap:50px;align-items:flex-start">
+    <div class="chips" style="width:470px;flex-direction:column;align-items:flex-start;gap:16px">
+      <span class="chip efs">📅 od Windows 2000</span>
+      <span class="chip efs">🗂 tylko NTFS</span>
+      <span class="chip efs">📄 pliki i foldery</span>
+      <span class="chip efs">👤 klucz per użytkownik</span>
+      <span class="chip">🪟 Pro · Enterprise · Education</span>
+      <span class="chip">🟩 zielone nazwy w Eksploratorze</span>
+    </div>
+    <div class="win" style="width:600px">
+      <div class="bar"><span>📁 C:\Users\student\Dokumenty</span><span>–▢✕</span></div>
+      <table class="explorer">
+        <tr><th>Nazwa</th><th>Data modyfikacji</th><th>Typ</th></tr>
+        <tr><td class="g">🔒 umowa_poufna.docx</td><td>14.10.2026</td><td>Dokument Word</td></tr>
+        <tr><td class="g">🔒 wyniki_badan.xlsx</td><td>12.10.2026</td><td>Arkusz Excel</td></tr>
+        <tr><td class="g">🔒 klucze_api.txt</td><td>09.10.2026</td><td>Dokument tekstowy</td></tr>
+        <tr><td>📄 notatki_SO.txt</td><td>02.10.2026</td><td>Dokument tekstowy</td></tr>
+        <tr><td>🖼 mem_bitlocker.png</td><td>01.10.2026</td><td>Obraz PNG</td></tr>
+      </table>
+      <div style="padding:14px;background:#fff;border-top:1px solid #ddd;font-size:15px">
+        Właściwości → Zaawansowane → ☑ <b>Szyfruj zawartość, aby zabezpieczyć dane</b>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>EFS jest starszy od BitLockera – pojawił się w Windows 2000 jako funkcja systemu plików NTFS. Działa wyłącznie na NTFS i szyfruje pojedyncze pliki lub całe foldery – nowe pliki w zaszyfrowanym folderze szyfrują się automatycznie.</p>
+    <p>Włącza się go banalnie: Właściwości pliku, Zaawansowane, „Szyfruj zawartość”. Zaszyfrowane pliki Eksplorator pokazuje na zielono – to jest ten charakterystyczny znak rozpoznawczy.</p>
+    <p>Najważniejsza cecha: klucz jest przypisany do konkretnego użytkownika. Dla właściciela plik otwiera się normalnie, a inny użytkownik – nawet administrator zalogowany na swoim koncie – dostaje „Odmowa dostępu”. W edycji Home EFS nie jest dostępny.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 20 -->
+<section class="slide" data-time="2:15">
+  <h2>Jak działa EFS<small>szyfrowanie hybrydowe: symetryczne + asymetryczne</small></h2>
+  <div class="grow" style="display:grid;grid-template-columns:1fr 60px 1fr 60px 1.15fr;align-items:center;gap:6px">
+    <div class="box">📄 Plik jawny</div>
+    <div class="arrow">→</div>
+    <div class="box efs" style="font-size:22px">🔑 FEK<small>File Encryption Key<br>losowy, AES-256</small></div>
+    <div class="arrow">→</div>
+    <div class="box">🔒 Zaszyfrowana treść</div>
+
+    <div></div><div></div>
+    <div class="arrow" style="grid-column:3;font-size:20px">↓ FEK szyfrowany RSA</div>
+    <div></div><div></div>
+
+    <div class="box bl" style="grid-column:1/3">👤 klucz publiczny<br>użytkownika<small>certyfikat EFS</small></div>
+    <div class="box gold" style="grid-column:3">atrybut <code>$EFS</code><small>DDF: FEK dla użytkownika<br>DRF: FEK dla agenta odzyskiwania</small></div>
+    <div class="arrow">←</div>
+    <div class="box warn">🛟 klucz publiczny DRA<small>Data Recovery Agent</small></div>
+  </div>
+  <div class="row" style="justify-content:center;gap:14px;font-size:20px">
+    <div class="box" style="padding:10px 16px">🔐 klucz prywatny użytkownika</div><div class="arrow" style="font-size:24px">⟵</div>
+    <div class="box" style="padding:10px 16px">DPAPI</div><div class="arrow" style="font-size:24px">⟵</div>
+    <div class="box warn" style="padding:10px 16px">🔤 hasło logowania</div>
+  </div>
+  <aside class="notes">
+    <p>EFS używa szyfrowania hybrydowego. Dla każdego pliku losowany jest osobny klucz symetryczny – FEK, File Encryption Key – i nim, AES-em 256, szyfrowana jest zawartość.</p>
+    <p>Sam FEK jest szyfrowany asymetrycznie, RSA, kluczem publicznym z certyfikatu EFS użytkownika, i zapisywany w specjalnym atrybucie NTFS o nazwie $EFS, w polu DDF. Jeśli skonfigurowano agenta odzyskiwania danych – DRA – to FEK jest dodatkowo szyfrowany jego kluczem publicznym, w polu DRF. Można też dodać kolejnych użytkowników, którzy mają mieć dostęp do pliku.</p>
+    <p>A gdzie jest klucz prywatny użytkownika? W jego profilu, chroniony przez DPAPI, a DPAPI wyprowadza klucze z hasła logowania. Czyli w praktyce całe EFS stoi na haśle użytkownika. To ma dwie konsekwencje – jedną dobrą, jedną bardzo złą.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 21 -->
+<section class="slide" data-time="1:00">
+  <h2>Reset hasła a EFS</h2>
+  <div class="grow row" style="justify-content:center;gap:50px">
+    <div>
+      <div class="meme" style="width:370px">
+        <img src="img/memy/panik-kalm.png" alt="Mem: Panik Kalm Panik">
+        <div class="cap dark" style="left:3%;top:1%;width:42%;height:32%;font-size:19px;padding:8px">Zapomniałem hasła do Windowsa</div>
+        <div class="cap dark" style="left:3%;top:34.5%;width:42%;height:32%;font-size:19px;padding:8px">Admin mi je zresetuje</div>
+        <div class="cap dark" style="left:3%;top:68%;width:42%;height:31%;font-size:19px;padding:8px">Klucz EFS był chroniony starym hasłem</div>
+      </div>
+      <div class="meme-src">mem „Panik Kalm Panik”</div>
+    </div>
+    <div class="col" style="width:440px">
+      <div class="box efs">✅ zmiana hasła (znam stare)<small>DPAPI przeszyfrowuje klucze</small></div>
+      <div class="box warn">❌ reset hasła przez admina<small>dostęp do plików EFS utracony</small></div>
+      <div class="box gold">🛟 ratunek: kopia .pfx albo DRA</div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Dobra konsekwencja: administrator nie może po prostu zresetować komuś hasła, zalogować się na jego konto i przeczytać plików EFS. Reset hasła zrywa łańcuch DPAPI, więc klucz prywatny staje się nieczytelny.</p>
+    <p>Zła konsekwencja: dokładnie to samo dzieje się, gdy to my zapomnimy hasła i poprosimy admina o reset. Zwykła zmiana hasła, gdy znamy stare, jest bezpieczna. Ale reset – i pliki przepadają.</p>
+    <p>Ratunek są dwa: kopia certyfikatu z kluczem prywatnym w pliku PFX albo agent odzyskiwania DRA. Na komputerach w domenie DRA jest domyślnie ustawiany, na samodzielnych komputerach – nie ma go wcale.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 22 -->
+<section class="slide" data-time="1:30">
+  <h2>Gdzie EFS przestaje chronić</h2>
+  <div class="grow row" style="justify-content:center;gap:44px">
+    <div>
+      <div class="meme" style="width:600px">
+        <img src="img/memy/grus-plan.jpg" alt="Mem: Gru's Plan">
+        <div class="cap dark" style="left:28%;top:9%;width:20%;height:38%;font-size:16px;padding:4px">Szyfruję plik przez EFS</div>
+        <div class="cap dark" style="left:78%;top:9%;width:20%;height:38%;font-size:16px;padding:4px">Kopiuję go na pendrive z FAT32</div>
+        <div class="cap dark" style="left:28%;top:59%;width:20%;height:38%;font-size:16px;padding:4px">Plik zapisuje się odszyfro&shy;wany</div>
+        <div class="cap dark" style="left:78%;top:59%;width:20%;height:38%;font-size:16px;padding:4px">Plik zapisuje się odszyfro&shy;wany</div>
+      </div>
+      <div class="meme-src">mem „Gru's Plan”</div>
+    </div>
+    <div class="col" style="width:380px;gap:12px">
+      <div class="box warn" style="font-size:18px">💾 kopia poza NTFS<small>FAT32, exFAT</small></div>
+      <div class="box warn" style="font-size:18px">📧 e-mail, chmura<small>wysyłany jest plik jawny</small></div>
+      <div class="box warn" style="font-size:18px">🏷 nazwy i rozmiary plików<small>nie są szyfrowane</small></div>
+      <div class="box warn" style="font-size:18px">🗑 tymczasowe kopie, pagefile<small>mogą zawierać jawne fragmenty</small></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>EFS chroni plik tylko tak długo, jak leży na NTFS. Skopiujemy go na pendrive z FAT32 – Windows wyświetli ostrzeżenie, ale plik zapisze się jawnie. Wyślemy go mailem albo wrzucimy do chmury – wychodzi wersja odszyfrowana, bo to my, uprawniony użytkownik, ją czytamy.</p>
+    <p>Do tego EFS nie szyfruje metadanych: nazwy plików, rozmiary, daty są widoczne. Plik o nazwie „zwolnienia_2027.xlsx” sporo zdradza, nawet zaszyfrowany.</p>
+    <p>I wreszcie: programy tworzą kopie tymczasowe, a system zrzuca pamięć do pliku stronicowania. Te miejsca nie muszą być zaszyfrowane przez EFS. Czyli EFS sam w sobie jest dziurawy jako ochrona przed kradzieżą dysku – i to jest właśnie miejsce dla BitLockera.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 23 -->
+<section class="slide" data-time="1:00">
+  <h2>EFS w praktyce: <code class="efs">cipher</code></h2>
+  <div class="grow row" style="gap:36px;align-items:flex-start">
+    <pre style="flex:1"><span class="c"># zaszyfruj folder (z podfolderami)</span>
+<span class="k">cipher</span> /e /s:C:\Poufne
+
+<span class="c"># kto może odszyfrować plik?</span>
+<span class="k">cipher</span> /c C:\Poufne\umowa.docx
+
+<span class="c"># kopia certyfikatu + klucza prywatnego (.pfx)</span>
+<span class="k">cipher</span> /x C:\Backup\efs-klucz
+
+<span class="c"># utwórz certyfikat agenta odzyskiwania (DRA)</span>
+<span class="k">cipher</span> /r:C:\Backup\dra
+
+<span class="c"># wyczyść „wolne” miejsce po skasowanych plikach</span>
+<span class="k">cipher</span> /w:C:\</pre>
+  </div>
+  <aside class="notes">
+    <p>Narzędzie wiersza poleceń dla EFS to cipher. Przełącznik /e szyfruje, /d odszyfrowuje, /c pokazuje, kto ma dostęp do pliku – czyli dla kogo zapisano kopie FEK.</p>
+    <p>Dwie rzeczy, które warto zrobić od razu po włączeniu EFS: cipher /x, czyli eksport certyfikatu z kluczem prywatnym do pliku PFX zabezpieczonego hasłem – i schować go poza komputerem. Oraz w firmie: cipher /r do wygenerowania certyfikatu agenta odzyskiwania.</p>
+    <p>Ciekawostka: cipher /w nadpisuje wolne miejsce na dysku, usuwając pozostałości skasowanych plików. Przydaje się także, gdy szyfrowaliśmy już istniejące pliki – EFS zostawia wtedy ich jawne kopie w zwolnionych sektorach.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 24 -->
+<section class="slide section" data-time="0:30">
+  <div class="grow row" style="justify-content:center;gap:60px">
+    <div>
+      <div class="kicker">Część 5</div>
+      <h1>Starcie</h1>
+      <div class="muted big" style="margin-top:14px">co wybrać?</div>
+    </div>
+    <div>
+      <div class="meme" style="width:330px">
+        <img src="img/memy/two-buttons.jpg" alt="Mem: Two Buttons">
+        <div class="cap dark" style="left:6%;top:9%;width:36%;height:11%;font-size:20px;transform:rotate(-14deg);background:rgba(255,255,255,.85);border-radius:6px">BitLocker</div>
+        <div class="cap dark" style="left:44%;top:5%;width:30%;height:11%;font-size:20px;transform:rotate(-14deg);background:rgba(255,255,255,.85);border-radius:6px">EFS</div>
+        <div class="cap" style="left:2%;bottom:2%;width:96%;height:14%;font-size:22px">Admin</div>
+      </div>
+      <div class="meme-src">mem „Two Buttons”</div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Skoro znamy już obu zawodników, czas na starcie. Wielu adminów stoi przed tym wyborem jak ten pan przed dwoma przyciskami. Zobaczmy, czy to w ogóle jest właściwe pytanie.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 25 -->
+<section class="slide" data-time="2:00">
+  <h2>BitLocker vs. EFS</h2>
+  <table class="cmp">
+    <tr><th></th><th class="bl">BitLocker</th><th class="efs">EFS</th></tr>
+    <tr><td>Co szyfruje</td><td>cały wolumin</td><td>wybrane pliki/foldery</td></tr>
+    <tr><td>Chroni przed</td><td>kradzieżą sprzętu 🧳</td><td>innymi użytkownikami 👥</td></tr>
+    <tr><td>Po zalogowaniu</td><td>dane jawne dla wszystkich kont</td><td>tylko właściciel (+ DRA)</td></tr>
+    <tr><td>Klucz z</td><td>TPM / PIN / hasło</td><td>certyfikat + hasło logowania</td></tr>
+    <tr><td>pagefile, temp, nazwy plików</td><td>✅ zaszyfrowane</td><td>❌ jawne</td></tr>
+    <tr><td>Systemy plików</td><td>NTFS, ReFS, FAT32, exFAT</td><td>tylko NTFS</td></tr>
+    <tr><td>Największe ryzyko</td><td>zgubiony klucz odzyskiwania</td><td>reset hasła, brak kopii .pfx</td></tr>
+  </table>
+  <aside class="notes">
+    <p>Zestawmy to w tabeli. BitLocker szyfruje wszystko, EFS – to, co wskażemy. BitLocker chroni przed kradzieżą sprzętu, EFS przed innymi użytkownikami tego samego systemu.</p>
+    <p>Najważniejszy wiersz to trzeci: po uruchomieniu systemu BitLocker jest „przezroczysty” – każde konto i każdy proces, łącznie z malware'em, widzi dane jawnie. EFS zostaje zamknięty dla wszystkich poza właścicielem i agentem odzyskiwania.</p>
+    <p>Za to EFS zostawia jawne pliki tymczasowe, plik stronicowania i nazwy plików, a BitLocker szyfruje wszystko. Każdy ma też swój „koszmar”: przy BitLockerze to zgubiony klucz odzyskiwania, przy EFS – reset hasła bez kopii certyfikatu.</p>
+    <p>Wniosek nasuwa się sam: one się nie wykluczają. Każde łata dziurę drugiego.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 26 -->
+<section class="slide" data-time="1:30">
+  <h2>Nie „albo”, tylko „i”</h2>
+  <div class="grow row" style="justify-content:center;gap:50px">
+    <div>
+      <div class="meme" style="width:520px">
+        <img src="img/memy/epic-handshake.jpg" alt="Mem: Epic Handshake">
+        <div class="cap" style="left:0;top:60%;width:36%;height:18%;font-size:30px">BitLocker</div>
+        <div class="cap" style="left:66%;top:60%;width:34%;height:18%;font-size:30px">EFS</div>
+        <div class="cap" style="left:20%;top:2%;width:60%;height:14%;font-size:28px">Defense in depth</div>
+      </div>
+      <div class="meme-src">mem „Epic Handshake”</div>
+    </div>
+    <div class="col" style="width:470px;gap:12px">
+      <div class="box bl" style="text-align:left">💻 Laptop<small>BitLocker TPM + PIN</small></div>
+      <div class="box bl" style="text-align:left">🔌 Pendrive<small>BitLocker To Go</small></div>
+      <div class="box efs" style="text-align:left">👥 Komputer współdzielony<small>BitLocker + EFS na poufne foldery</small></div>
+      <div class="box" style="text-align:left"><span>🗄 Serwer</span><small>BitLocker (+ Network Unlock) · uprawnienia NTFS</small></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Zasada „defense in depth” – obrona w głąb. BitLocker jako fundament: chroni przed kradzieżą i szyfruje to, czego EFS nie łapie – pagefile, pliki tymczasowe, metadane. EFS jako druga warstwa tam, gdzie z jednego komputera korzysta kilka osób albo gdzie dane mają być niedostępne nawet dla administratora.</p>
+    <p>Praktyczne scenariusze: laptop – BitLocker z PIN-em. Pendrive – BitLocker To Go. Komputer współdzielony, np. w laboratorium czy recepcji – BitLocker plus EFS na foldery z poufnymi danymi. Serwer – BitLocker, w domenie z Network Unlock, żeby serwer mógł się sam zrestartować w zaufanej sieci.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 27 -->
+<section class="slide" data-time="1:30">
+  <h2>Dobre praktyki</h2>
+  <div class="grow row" style="gap:44px">
+    <div class="col" style="flex:1;gap:12px;font-size:22px">
+      <div class="box" style="text-align:left">☑ Klucze odzyskiwania w <b>AD / Entra ID</b></div>
+      <div class="box" style="text-align:left">☑ <b>TPM + PIN</b> na laptopach</div>
+      <div class="box" style="text-align:left">☑ <b>XTS-AES 256</b> przez GPO / Intune</div>
+      <div class="box" style="text-align:left">☑ EFS: <b>DRA</b> + kopia <b>.pfx</b> poza komputerem</div>
+      <div class="box" style="text-align:left">☑ Szyfruj <b>zanim</b> trafią tam dane</div>
+      <div class="box" style="text-align:left">☑ Test odzyskiwania – zanim będzie potrzebny</div>
+    </div>
+    <div>
+      <div class="meme" style="width:440px">
+        <img src="img/memy/change-my-mind.jpg" alt="Mem: Change My Mind">
+        <div class="cap dark" style="left:45%;top:62%;width:44%;height:20%;font-size:14px;transform:rotate(-1deg)">Klucz odzyskiwania na karteczce przyklejonej do laptopa to nie backup</div>
+      </div>
+      <div class="meme-src">mem „Change My Mind”</div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Dobre praktyki w skrócie. Klucze odzyskiwania BitLockera centralnie – w Active Directory albo Entra ID. TPM z PIN-em na urządzeniach mobilnych. Wymuszenie algorytmu i trybu przez zasady grupy albo Intune.</p>
+    <p>Dla EFS: agent odzyskiwania i kopia certyfikatu w bezpiecznym miejscu – nie na tym samym dysku. Szyfrujemy nośnik zanim trafią na niego dane – inaczej pozostałości mogą zostać w nieużywanych sektorach, szczególnie na SSD.</p>
+    <p>I najważniejsze: przetestujcie odzyskiwanie, zanim będzie potrzebne. Klucz odzyskiwania na karteczce przyklejonej do laptopa to nie backup – to instrukcja obsługi dla złodzieja.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 28 -->
+<section class="slide" data-time="1:15">
+  <h2>Co dalej?</h2>
+  <div class="grow" style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+    <div class="card col" style="border-color:var(--bl)">
+      <div style="font-size:46px">🏠</div><b style="font-size:24px">Windows 11 24H2</b>
+      <div class="muted" style="font-size:18px">szyfrowanie urządzenia włączane automatycznie – także w Home</div>
+    </div>
+    <div class="card col" style="border-color:var(--efs)">
+      <div style="font-size:46px">🧬</div><b style="font-size:24px">Personal Data Encryption</b>
+      <div class="muted" style="font-size:18px">„nowy EFS”: klucze powiązane z Windows Hello for Business</div>
+    </div>
+    <div class="card col">
+      <div style="font-size:46px">⚠️</div><b style="font-size:24px">Sprzętowe SED</b>
+      <div class="muted" style="font-size:18px">po badaniach z 2018 r. BitLocker domyślnie nie ufa szyfrowaniu w SSD</div>
+    </div>
+    <div class="card col" style="grid-column:1/4;flex-direction:row;align-items:center;gap:24px">
+      <img src="img/foto/servers.jpg" style="width:160px;height:110px;object-fit:cover;border-radius:10px" alt="Szafa serwerowa">
+      <div><b style="font-size:24px">Inne systemy:</b> <span class="muted" style="font-size:22px">LUKS / dm-crypt (Linux) · FileVault (macOS) · VeraCrypt (wieloplatformowy)</span></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Kilka słów o tym, dokąd to zmierza. Od Windows 11 24H2 szyfrowanie urządzenia włącza się automatycznie przy czystej instalacji, także w edycji Home – czyli coraz więcej z nas ma BitLockera, nawet o tym nie wiedząc. Tym ważniejsze jest sprawdzenie, gdzie jest nasz klucz odzyskiwania.</p>
+    <p>Następcą idei EFS jest Personal Data Encryption: szyfrowanie plików, w którym klucze są powiązane z Windows Hello for Business, a dane są niedostępne, dopóki użytkownik się nie zaloguje.</p>
+    <p>Ciekawostka: w 2018 roku badacze z Uniwersytetu Radboud pokazali, że wiele dysków SSD z „sprzętowym” szyfrowaniem miało poważne błędy. Od tego czasu BitLocker domyślnie szyfruje programowo, zamiast ufać firmware'owi dysku. A dla porównania – w innych systemach odpowiednikami są LUKS w Linuksie, FileVault w macOS i wieloplatformowy VeraCrypt.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 29 -->
+<section class="slide" data-time="1:15">
+  <h2>Podsumowanie</h2>
+  <div class="grow row" style="justify-content:center;gap:50px">
+    <div>
+      <div class="meme" style="width:370px">
+        <img src="img/memy/expanding-brain.jpg" alt="Mem: Expanding Brain">
+        <div class="cap dark" style="left:1%;top:0;width:48%;height:25%;font-size:17px;padding:8px">Bez szyfrowania</div>
+        <div class="cap dark" style="left:1%;top:25%;width:48%;height:25%;font-size:17px;padding:8px">„Mam hasło do Windowsa”</div>
+        <div class="cap dark" style="left:1%;top:50%;width:48%;height:25%;font-size:17px;padding:8px">BitLocker z TPM</div>
+        <div class="cap dark" style="left:1%;top:75%;width:48%;height:25%;font-size:15px;padding:8px">BitLocker TPM+PIN + EFS + klucze w Entra ID</div>
+      </div>
+      <div class="meme-src">mem „Expanding Brain”</div>
+    </div>
+    <div class="col" style="width:500px">
+      <div class="box bl big" style="text-align:left">💽 BitLocker = <b>skradziony sprzęt</b></div>
+      <div class="box efs big" style="text-align:left">📄 EFS = <b>inni użytkownicy</b></div>
+      <div class="box gold big" style="text-align:left">🔑 Szyfrowanie = <b>zarządzanie kluczami</b></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Podsumowując – i rozwijając mózg krok po kroku. Brak szyfrowania to poziom zero. Hasło do Windowsa daje tylko złudzenie bezpieczeństwa. BitLocker z TPM to już realna ochrona przed kradzieżą. A pełna oświecona wersja to BitLocker z PIN-em, EFS tam, gdzie trzeba, i klucze odzyskiwania przechowywane centralnie.</p>
+    <p>Trzy zdania do zapamiętania: BitLocker chroni przed kimś, kto ma nasz sprzęt. EFS chroni przed kimś, kto ma konto na naszym komputerze. A szyfrowanie jest dokładnie tak dobre, jak zarządzanie kluczami – bo AES-a nikt nie łamie, za to klucze gubimy wszyscy.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 30 -->
+<section class="slide center" data-time="Q&amp;A">
+  <div class="meme" style="width:600px">
+    <img src="img/memy/monkey-puppet.jpg" alt="Mem: Monkey Puppet">
+    <div class="cap dark" style="left:3%;top:2%;width:94%;height:30%;font-size:30px;flex-direction:column">Prowadzący: „Są jakieś pytania?”<br><span style="font-weight:400;font-size:24px">Sala:</span></div>
+  </div>
+  <h1 style="margin-top:30px;font-size:56px">Dziękuję! Pytania?</h1>
+  <aside class="notes">
+    <p>Dziękuję za uwagę. Mam nadzieję, że nikt nie zareaguje jak ta małpka – chętnie odpowiem na pytania.</p>
+    <p>Przykładowe pytania, które mogą paść: „Czy BitLocker spowalnia SSD?” – przy AES-NI praktycznie nie. „Czy Microsoft ma mój klucz?” – jeśli logujesz się kontem Microsoft i masz szyfrowanie urządzenia, kopia klucza odzyskiwania jest na Twoim koncie; można ją usunąć i przechowywać samodzielnie. „Czy można używać EFS bez BitLockera?” – można, ale pagefile, pliki tymczasowe i nazwy plików zostają jawne.</p>
+  </aside>
+</section>
+
+<!-- ===================================================== 31 -->
+<section class="slide" data-time="—">
+  <h2>Źródła</h2>
+  <div class="col" style="font-size:17px;gap:10px;color:var(--muted)">
+    <div>• Microsoft Learn – <i>BitLocker overview</i>, <i>BitLocker countermeasures</i>, <i>BitLocker recovery overview</i></div>
+    <div>• Microsoft Learn – <i>Encrypting File System</i>, dokumentacja polecenia <code>cipher</code>, <i>Personal Data Encryption</i></div>
+    <div>• J. A. Halderman i in., <i>Lest We Remember: Cold Boot Attacks on Encryption Keys</i>, USENIX Security 2008</div>
+    <div>• stacksmashing, <i>Breaking BitLocker – Bypassing the Windows Disk Encryption</i>, 2024</div>
+    <div>• T. Lambertz, <i>Windows BitLocker: Screwed without a Screwdriver</i> (bitpixie, CVE-2023-21563), 38C3, 2024</div>
+    <div>• C. Meijer, B. van Gastel, <i>Self-encrypting deception: weaknesses in the encryption of SSDs</i>, IEEE S&amp;P 2019</div>
+    <div>• Zdjęcia: Wikimedia Commons – <i>TPM Asus.jpg</i>, <i>Lenovo N20 … Infineon SLB9655TT12</i>, <i>Seagate ST33232A hard disk inner view</i>, <i>Solex 99 30 padlock</i>, <i>Raspberry Pi Pico oblique</i>, <i>USB flash drive</i>, <i>Servers in a Rack</i>, <i>Love padlocks … Ljubljana</i></div>
+    <div>• Szablony memów: imgflip.com</div>
+  </div>
+  <aside class="notes">
+    <p>Slajd ze źródłami – zostawiam do wglądu.</p>
+  </aside>
+</section>
+
+</div>
+
+<div id="progress"></div>
+<div id="help">← → nawigacja · N notatki · P widok prelegenta · F pełny ekran</div>
+<div id="notesOverlay"></div>
+
+<script>
+(() => {
+  const slides = [...document.querySelectorAll('.slide')];
+  const deck = document.getElementById('deck');
+  const overlay = document.getElementById('notesOverlay');
+  const progress = document.getElementById('progress');
+  let cur = 0, presenter = null, start = null;
+
+  slides.forEach((s, i) => s.dataset.n = `${i + 1} / ${slides.length}`);
+
+  function fit() {
+    const k = Math.min(innerWidth / 1280, innerHeight / 720);
+    deck.style.transform = `translate(-50%,-50%) scale(${k})`;
+  }
+  const notesOf = i => slides[i]?.querySelector('aside.notes')?.innerHTML || '';
+  const titleOf = i => {
+    const s = slides[i];
+    if (!s) return '— koniec —';
+    return (s.querySelector('h2,h1')?.textContent || '').trim().split('\n')[0];
+  };
+
+  function show(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, j) => s.classList.toggle('active', j === cur));
+    progress.style.width = `${(cur + 1) / slides.length * 100}%`;
+    overlay.innerHTML = `<div class="t">⏱ ${slides[cur].dataset.time} · slajd ${cur + 1}</div>` + notesOf(cur);
+    if (location.hash !== '#' + (cur + 1)) history.replaceState(null, '', '#' + (cur + 1));
+    updatePresenter();
+  }
+
+  function openPresenter() {
+    presenter = window.open('', 'prelegent', 'width=900,height=700');
+    if (!presenter) return;
+    if (!start) start = Date.now();
+    presenter.document.write(`<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Widok prelegenta</title>
+      <style>body{background:#0b1220;color:#e8edf7;font:20px/1.6 system-ui,sans-serif;padding:24px 32px;margin:0}
+      #top{display:flex;justify-content:space-between;font:600 18px ui-monospace,monospace;color:#ffc65c;border-bottom:1px solid #2a3757;padding-bottom:10px}
+      h1{font-size:30px;margin:16px 0}#next{color:#9aa7c2;font-size:16px;border-top:1px solid #2a3757;padding-top:10px;margin-top:20px}
+      p{margin:0 0 12px}button{font-size:18px;padding:6px 16px;margin-right:8px}</style></head>
+      <body><div id="top"><span id="pos"></span><span id="time"></span><span id="clock"></span></div>
+      <h1 id="title"></h1><div id="notes"></div><div id="next"></div>
+      <div style="margin-top:18px"><button id="prev">← Wstecz</button><button id="fwd">Dalej →</button></div></body></html>`);
+    presenter.document.close();
+    presenter.document.getElementById('prev').onclick = () => show(cur - 1);
+    presenter.document.getElementById('fwd').onclick = () => show(cur + 1);
+    presenter.document.addEventListener('keydown', onKey);
+    updatePresenter();
+  }
+  function updatePresenter() {
+    if (!presenter || presenter.closed) return;
+    const d = presenter.document;
+    d.getElementById('pos').textContent = `Slajd ${cur + 1}/${slides.length} · plan: ${slides[cur].dataset.time}`;
+    d.getElementById('title').textContent = titleOf(cur);
+    d.getElementById('notes').innerHTML = notesOf(cur);
+    d.getElementById('next').textContent = 'Następny: ' + titleOf(cur + 1);
+  }
+  setInterval(() => {
+    if (!presenter || presenter.closed || !start) return;
+    const s = Math.floor((Date.now() - start) / 1000);
+    presenter.document.getElementById('time').textContent = `⏱ ${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    presenter.document.getElementById('clock').textContent = new Date().toLocaleTimeString('pl-PL');
+  }, 1000);
+
+  function onKey(e) {
+    if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); show(cur + 1); }
+    else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); show(cur - 1); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key === 'n' || e.key === 'N') overlay.classList.toggle('on');
+    else if (e.key === 'p' || e.key === 'P') openPresenter();
+    else if (e.key === 'f' || e.key === 'F') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  }
+  addEventListener('keydown', onKey);
+  addEventListener('resize', fit);
+  deck.addEventListener('click', e => { if (!e.target.closest('a')) show(cur + (e.clientX > innerWidth / 3 ? 1 : -1)); });
+
+  setTimeout(() => document.getElementById('help').style.opacity = 0, 8000);
+  fit();
+  show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+})();
+</script>
+</body>
+</html>
