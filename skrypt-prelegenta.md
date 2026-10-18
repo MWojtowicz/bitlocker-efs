@@ -64,7 +64,7 @@ Pełny BitLocker jest w edycjach Pro, Enterprise i Education. W Home mamy uprosz
 
 To jest najważniejszy slajd o BitLockerze. Dane na dysku są szyfrowane kluczem FVEK – Full Volume Encryption Key. On się w zasadzie nigdy nie zmienia.
 
-FVEK jest zaszyfrowany kluczem VMK – Volume Master Key. A VMK jest zaszyfrowany niezależnie przez każdy z tak zwanych protektorów: przez TPM, przez TPM z PIN-em, kluczem na pendrive'ie, 48-cyfrowym hasłem odzyskiwania i tak dalej. Każdy protektor to po prostu inna „kopia” VMK zamknięta innym zamkiem.
+FVEK jest zaszyfrowany kluczem VMK – Volume Master Key. A VMK jest zaszyfrowany niezależnie przez każdy z tak zwanych protektorów: TPM, TPM z PIN-em, klucz na pendrivie, 48-cyfrowe hasło odzyskiwania i tak dalej. Każdy protektor to po prostu inna „kopia” VMK zamknięta innym zamkiem.
 
 Dzięki temu dodanie PIN-u czy zmiana hasła odzyskiwania polega na przeszyfrowaniu kilkudziesięciu bajtów, a nie całego terabajtowego dysku. A szybkie „wymazanie” dysku polega na zniszczeniu kluczy – bez nich dane są bezużyteczne.
 
@@ -108,7 +108,7 @@ Wspólny mianownik: we wszystkich przypadkach komputer sam, automatycznie odszyf
 
 ## Slajd 15: TPM sniffing w jednym obrazku  ·  ⏱ 1:00
 
-Ten atak najlepiej podsumowuje ten mem. Wiele osób zakłada, że TPM to magiczna czarna skrzynka i klucz nigdy jej nie opuszcza. Tymczasem w BitLockerze TPM wydaje VMK procesorowi – i jeśli robi to po fizycznej magistrali na płycie, to wystarczy się do niej podpiąć.
+Ten atak najlepiej podsumowuje poniższy mem. Wiele osób zakłada, że TPM to magiczna czarna skrzynka i klucz nigdy jej nie opuszcza. Tymczasem w BitLockerze TPM wydaje VMK procesorowi – i jeśli robi to po fizycznej magistrali na płycie, to wystarczy się do niej podpiąć.
 
 Ważne zastrzeżenie: dotyczy to dyskretnych układów TPM. Firmware TPM wbudowany w procesor – Intel PTT, AMD fTPM – nie ma zewnętrznej magistrali do podsłuchania. A protokół TPM 2.0 przewiduje szyfrowanie sesji, tylko BitLocker go w tym miejscu nie używał.
 
@@ -134,7 +134,7 @@ EFS jest starszy od BitLockera – pojawił się w Windows 2000 jako funkcja sys
 
 Włącza się go banalnie: Właściwości pliku, Zaawansowane, „Szyfruj zawartość”. Zaszyfrowane pliki Eksplorator pokazuje na zielono – to jest ten charakterystyczny znak rozpoznawczy.
 
-Najważniejsza cecha: klucz jest przypisany do konkretnego użytkownika. Dla właściciela plik otwiera się normalnie, a inny użytkownik – nawet administrator zalogowany na swoim koncie – dostaje „Odmowa dostępu”. W edycji Home EFS nie jest dostępny.
+Najważniejsza cecha: klucz jest przypisany do konkretnego użytkownika. Dla właściciela plik otwiera się normalnie, a inny użytkownik – nawet administrator zalogowany na swoim koncie – dostaje komunikat „Odmowa dostępu”. W edycji Home EFS nie jest dostępny.
 
 ## Slajd 20: Jak działa EFS  ·  ⏱ 2:15
 
@@ -142,7 +142,7 @@ EFS używa szyfrowania hybrydowego. Dla każdego pliku losowany jest osobny kluc
 
 Sam FEK jest szyfrowany asymetrycznie, RSA, kluczem publicznym z certyfikatu EFS użytkownika, i zapisywany w specjalnym atrybucie NTFS o nazwie $EFS, w polu DDF. Jeśli skonfigurowano agenta odzyskiwania danych – DRA – to FEK jest dodatkowo szyfrowany jego kluczem publicznym, w polu DRF. Można też dodać kolejnych użytkowników, którzy mają mieć dostęp do pliku.
 
-A gdzie jest klucz prywatny użytkownika? W jego profilu, chroniony przez DPAPI, a DPAPI wyprowadza klucze z hasła logowania. Czyli w praktyce całe EFS stoi na haśle użytkownika. To ma dwie konsekwencje – jedną dobrą, jedną bardzo złą.
+A gdzie jest klucz prywatny użytkownika? W jego profilu, chroniony przez DPAPI, a DPAPI wyprowadza klucze z hasła logowania. Czyli w praktyce cały EFS stoi na haśle użytkownika. To ma dwie konsekwencje – jedną dobrą, jedną bardzo złą.
 
 ## Slajd 21: Reset hasła a EFS  ·  ⏱ 1:00
 
@@ -150,7 +150,7 @@ Dobra konsekwencja: administrator nie może po prostu zresetować komuś hasła,
 
 Zła konsekwencja: dokładnie to samo dzieje się, gdy to my zapomnimy hasła i poprosimy admina o reset. Zwykła zmiana hasła, gdy znamy stare, jest bezpieczna. Ale reset – i pliki przepadają.
 
-Ratunek są dwa: kopia certyfikatu z kluczem prywatnym w pliku PFX albo agent odzyskiwania DRA. Na komputerach w domenie DRA jest domyślnie ustawiany, na samodzielnych komputerach – nie ma go wcale.
+Ratunki są dwa: kopia certyfikatu z kluczem prywatnym w pliku PFX albo agent odzyskiwania DRA. Na komputerach w domenie DRA jest domyślnie ustawiany, na samodzielnych komputerach – nie ma go wcale.
 
 ## Slajd 22: Gdzie EFS przestaje chronić  ·  ⏱ 1:30
 
@@ -176,11 +176,11 @@ Skoro znamy już obu zawodników, czas na starcie. Wielu adminów stoi przed tym
 
 Zestawmy to w tabeli. BitLocker szyfruje wszystko, EFS – to, co wskażemy. BitLocker chroni przed kradzieżą sprzętu, EFS przed innymi użytkownikami tego samego systemu.
 
-Najważniejszy wiersz to trzeci: po uruchomieniu systemu BitLocker jest „przezroczysty” – każde konto i każdy proces, łącznie z malware'em, widzi dane jawnie. EFS zostaje zamknięty dla wszystkich poza właścicielem i agentem odzyskiwania.
+Najważniejszy wiersz to trzeci: po uruchomieniu systemu BitLocker jest „przezroczysty” – każde konto i każdy proces, łącznie z malware'em, widzi dane jawnie. Pliki EFS pozostają zamknięte dla wszystkich poza właścicielem i agentem odzyskiwania.
 
 Za to EFS zostawia jawne pliki tymczasowe, plik stronicowania i nazwy plików, a BitLocker szyfruje wszystko. Każdy ma też swój „koszmar”: przy BitLockerze to zgubiony klucz odzyskiwania, przy EFS – reset hasła bez kopii certyfikatu.
 
-Wniosek nasuwa się sam: one się nie wykluczają. Każde łata dziurę drugiego.
+Wniosek nasuwa się sam: one się nie wykluczają. Każdy łata dziury drugiego.
 
 ## Slajd 26: Nie „albo”, tylko „i”  ·  ⏱ 1:30
 
@@ -192,7 +192,7 @@ Praktyczne scenariusze: laptop – BitLocker z PIN-em. Pendrive – BitLocker To
 
 Dobre praktyki w skrócie. Klucze odzyskiwania BitLockera centralnie – w Active Directory albo Entra ID. TPM z PIN-em na urządzeniach mobilnych. Wymuszenie algorytmu i trybu przez zasady grupy albo Intune.
 
-Dla EFS: agent odzyskiwania i kopia certyfikatu w bezpiecznym miejscu – nie na tym samym dysku. Szyfrujemy nośnik zanim trafią na niego dane – inaczej pozostałości mogą zostać w nieużywanych sektorach, szczególnie na SSD.
+Dla EFS: agent odzyskiwania i kopia certyfikatu w bezpiecznym miejscu – nie na tym samym dysku. Szyfrujemy nośnik, zanim trafią na niego dane – inaczej pozostałości mogą zostać w nieużywanych sektorach, szczególnie na SSD.
 
 I najważniejsze: przetestujcie odzyskiwanie, zanim będzie potrzebne. Klucz odzyskiwania na karteczce przyklejonej do laptopa to nie backup – to instrukcja obsługi dla złodzieja.
 
@@ -206,7 +206,7 @@ Ciekawostka: w 2018 roku badacze z Uniwersytetu Radboud pokazali, że wiele dysk
 
 ## Slajd 29: Podsumowanie  ·  ⏱ 1:15
 
-Podsumowując – i rozwijając mózg krok po kroku. Brak szyfrowania to poziom zero. Hasło do Windowsa daje tylko złudzenie bezpieczeństwa. BitLocker z TPM to już realna ochrona przed kradzieżą. A pełna oświecona wersja to BitLocker z PIN-em, EFS tam, gdzie trzeba, i klucze odzyskiwania przechowywane centralnie.
+Podsumowując – i rozwijając mózg krok po kroku. Brak szyfrowania to poziom zero. Hasło do Windowsa daje tylko złudzenie bezpieczeństwa. BitLocker z TPM to już realna ochrona przed kradzieżą. A w pełni oświecona wersja to BitLocker z PIN-em, EFS tam, gdzie trzeba, i klucze odzyskiwania przechowywane centralnie.
 
 Trzy zdania do zapamiętania: BitLocker chroni przed kimś, kto ma nasz sprzęt. EFS chroni przed kimś, kto ma konto na naszym komputerze. A szyfrowanie jest dokładnie tak dobre, jak zarządzanie kluczami – bo AES-a nikt nie łamie, za to klucze gubimy wszyscy.
 
@@ -214,7 +214,7 @@ Trzy zdania do zapamiętania: BitLocker chroni przed kimś, kto ma nasz sprzęt.
 
 Dziękuję za uwagę. Mam nadzieję, że nikt nie zareaguje jak ta małpka – chętnie odpowiem na pytania.
 
-Przykładowe pytania, które mogą paść: „Czy BitLocker spowalnia SSD?” – przy AES-NI praktycznie nie. „Czy Microsoft ma mój klucz?” – jeśli logujesz się kontem Microsoft i masz szyfrowanie urządzenia, kopia klucza odzyskiwania jest na Twoim koncie; można ją usunąć i przechowywać samodzielnie. „Czy można używać EFS bez BitLockera?” – można, ale pagefile, pliki tymczasowe i nazwy plików zostają jawne.
+Przykładowe pytania, które mogą paść: „Czy BitLocker spowalnia SSD?” – przy AES-NI praktycznie nie. „Czy Microsoft ma mój klucz?” – jeśli logujesz się kontem Microsoft i masz szyfrowanie urządzenia, kopia klucza odzyskiwania jest na twoim koncie; można ją usunąć i przechowywać samodzielnie. „Czy można używać EFS bez BitLockera?” – można, ale pagefile, pliki tymczasowe i nazwy plików zostają jawne.
 
 ## Slajd 31: Źródła  ·  ⏱ —
 

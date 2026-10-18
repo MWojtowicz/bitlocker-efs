@@ -324,7 +324,7 @@ table.cmp tr:last-child td{border-bottom:none}
   <div class="muted" style="text-align:center;font-size:18px">„A ⟵ B” = A jest zaszyfrowane kluczem B · protektory po prawej</div>
   <aside class="notes">
     <p>To jest najważniejszy slajd o BitLockerze. Dane na dysku są szyfrowane kluczem FVEK – Full Volume Encryption Key. On się w zasadzie nigdy nie zmienia.</p>
-    <p>FVEK jest zaszyfrowany kluczem VMK – Volume Master Key. A VMK jest zaszyfrowany niezależnie przez każdy z tak zwanych protektorów: przez TPM, przez TPM z PIN-em, kluczem na pendrive'ie, 48-cyfrowym hasłem odzyskiwania i tak dalej. Każdy protektor to po prostu inna „kopia” VMK zamknięta innym zamkiem.</p>
+    <p>FVEK jest zaszyfrowany kluczem VMK – Volume Master Key. A VMK jest zaszyfrowany niezależnie przez każdy z tak zwanych protektorów: TPM, TPM z PIN-em, klucz na pendrivie, 48-cyfrowe hasło odzyskiwania i tak dalej. Każdy protektor to po prostu inna „kopia” VMK zamknięta innym zamkiem.</p>
     <p>Dzięki temu dodanie PIN-u czy zmiana hasła odzyskiwania polega na przeszyfrowaniu kilkudziesięciu bajtów, a nie całego terabajtowego dysku. A szybkie „wymazanie” dysku polega na zniszczeniu kluczy – bez nich dane są bezużyteczne.</p>
   </aside>
 </section>
@@ -343,7 +343,7 @@ table.cmp tr:last-child td{border-bottom:none}
         <div class="box" style="flex:1">Secure Boot</div><div class="arrow" style="font-size:26px">→</div>
         <div class="box" style="flex:1">Boot Manager</div>
       </div>
-      <div class="arrow" style="font-size:26px">↓ pomiary (hashe) trafiają do rejestrów PCR</div>
+      <div class="arrow" style="font-size:26px">↓ pomiary (skróty) trafiają do rejestrów PCR</div>
       <div class="box gold" style="font-size:24px">TPM: czy PCR = stan „zaufany”?</div>
       <div class="row" style="gap:16px">
         <div class="box efs" style="flex:1">✅ tak<small>odpieczętuje VMK → Windows startuje</small></div>
@@ -435,7 +435,7 @@ table.cmp tr:last-child td{border-bottom:none}
     <div class="card col" style="gap:10px">
       <svg viewBox="0 0 200 120" width="100%" height="120"><rect x="10" y="35" width="180" height="50" rx="4" fill="#1a2540" stroke="#9aa7c2" stroke-width="3"/><g fill="#2f8cff"><rect x="25" y="45" width="25" height="30"/><rect x="60" y="45" width="25" height="30"/><rect x="95" y="45" width="25" height="30"/><rect x="130" y="45" width="25" height="30"/></g><g stroke="#9aa7c2" stroke-width="2"><path d="M20 85v10M35 85v10M50 85v10M65 85v10M80 85v10M95 85v10M110 85v10M125 85v10M140 85v10M155 85v10M170 85v10"/></g><text x="172" y="30" font-size="40" text-anchor="middle">❄️</text></svg>
       <b style="font-size:26px">Cold boot</b>
-      <div class="muted" style="font-size:19px;line-height:1.45">zamrożony RAM zachowuje klucze przez sekundy-minuty<br><i>Princeton, 2008</i></div>
+      <div class="muted" style="font-size:19px;line-height:1.45">zamrożony RAM zachowuje klucze od kilku sekund do minut<br><i>Princeton, 2008</i></div>
     </div>
     <div class="card col" style="gap:10px">
       <img src="img/foto/pico.jpg" style="width:100%;height:120px;object-fit:cover;border-radius:10px" alt="Raspberry Pi Pico">
@@ -476,7 +476,7 @@ table.cmp tr:last-child td{border-bottom:none}
     </div>
   </div>
   <aside class="notes">
-    <p>Ten atak najlepiej podsumowuje ten mem. Wiele osób zakłada, że TPM to magiczna czarna skrzynka i klucz nigdy jej nie opuszcza. Tymczasem w BitLockerze TPM wydaje VMK procesorowi – i jeśli robi to po fizycznej magistrali na płycie, to wystarczy się do niej podpiąć.</p>
+    <p>Ten atak najlepiej podsumowuje poniższy mem. Wiele osób zakłada, że TPM to magiczna czarna skrzynka i klucz nigdy jej nie opuszcza. Tymczasem w BitLockerze TPM wydaje VMK procesorowi – i jeśli robi to po fizycznej magistrali na płycie, to wystarczy się do niej podpiąć.</p>
     <p>Ważne zastrzeżenie: dotyczy to dyskretnych układów TPM. Firmware TPM wbudowany w procesor – Intel PTT, AMD fTPM – nie ma zewnętrznej magistrali do podsłuchania. A protokół TPM 2.0 przewiduje szyfrowanie sesji, tylko BitLocker go w tym miejscu nie używał.</p>
   </aside>
 </section>
@@ -572,7 +572,7 @@ table.cmp tr:last-child td{border-bottom:none}
   <aside class="notes">
     <p>EFS jest starszy od BitLockera – pojawił się w Windows 2000 jako funkcja systemu plików NTFS. Działa wyłącznie na NTFS i szyfruje pojedyncze pliki lub całe foldery – nowe pliki w zaszyfrowanym folderze szyfrują się automatycznie.</p>
     <p>Włącza się go banalnie: Właściwości pliku, Zaawansowane, „Szyfruj zawartość”. Zaszyfrowane pliki Eksplorator pokazuje na zielono – to jest ten charakterystyczny znak rozpoznawczy.</p>
-    <p>Najważniejsza cecha: klucz jest przypisany do konkretnego użytkownika. Dla właściciela plik otwiera się normalnie, a inny użytkownik – nawet administrator zalogowany na swoim koncie – dostaje „Odmowa dostępu”. W edycji Home EFS nie jest dostępny.</p>
+    <p>Najważniejsza cecha: klucz jest przypisany do konkretnego użytkownika. Dla właściciela plik otwiera się normalnie, a inny użytkownik – nawet administrator zalogowany na swoim koncie – dostaje komunikat „Odmowa dostępu”. W edycji Home EFS nie jest dostępny.</p>
   </aside>
 </section>
 
@@ -603,7 +603,7 @@ table.cmp tr:last-child td{border-bottom:none}
   <aside class="notes">
     <p>EFS używa szyfrowania hybrydowego. Dla każdego pliku losowany jest osobny klucz symetryczny – FEK, File Encryption Key – i nim, AES-em 256, szyfrowana jest zawartość.</p>
     <p>Sam FEK jest szyfrowany asymetrycznie, RSA, kluczem publicznym z certyfikatu EFS użytkownika, i zapisywany w specjalnym atrybucie NTFS o nazwie $EFS, w polu DDF. Jeśli skonfigurowano agenta odzyskiwania danych – DRA – to FEK jest dodatkowo szyfrowany jego kluczem publicznym, w polu DRF. Można też dodać kolejnych użytkowników, którzy mają mieć dostęp do pliku.</p>
-    <p>A gdzie jest klucz prywatny użytkownika? W jego profilu, chroniony przez DPAPI, a DPAPI wyprowadza klucze z hasła logowania. Czyli w praktyce całe EFS stoi na haśle użytkownika. To ma dwie konsekwencje – jedną dobrą, jedną bardzo złą.</p>
+    <p>A gdzie jest klucz prywatny użytkownika? W jego profilu, chroniony przez DPAPI, a DPAPI wyprowadza klucze z hasła logowania. Czyli w praktyce cały EFS stoi na haśle użytkownika. To ma dwie konsekwencje – jedną dobrą, jedną bardzo złą.</p>
   </aside>
 </section>
 
@@ -629,7 +629,7 @@ table.cmp tr:last-child td{border-bottom:none}
   <aside class="notes">
     <p>Dobra konsekwencja: administrator nie może po prostu zresetować komuś hasła, zalogować się na jego konto i przeczytać plików EFS. Reset hasła zrywa łańcuch DPAPI, więc klucz prywatny staje się nieczytelny.</p>
     <p>Zła konsekwencja: dokładnie to samo dzieje się, gdy to my zapomnimy hasła i poprosimy admina o reset. Zwykła zmiana hasła, gdy znamy stare, jest bezpieczna. Ale reset – i pliki przepadają.</p>
-    <p>Ratunek są dwa: kopia certyfikatu z kluczem prywatnym w pliku PFX albo agent odzyskiwania DRA. Na komputerach w domenie DRA jest domyślnie ustawiany, na samodzielnych komputerach – nie ma go wcale.</p>
+    <p>Ratunki są dwa: kopia certyfikatu z kluczem prywatnym w pliku PFX albo agent odzyskiwania DRA. Na komputerach w domenie DRA jest domyślnie ustawiany, na samodzielnych komputerach – nie ma go wcale.</p>
   </aside>
 </section>
 
@@ -642,8 +642,8 @@ table.cmp tr:last-child td{border-bottom:none}
         <img src="img/memy/grus-plan.jpg" alt="Mem: Gru's Plan">
         <div class="cap dark" style="left:28%;top:9%;width:20%;height:38%;font-size:16px;padding:4px">Szyfruję plik przez EFS</div>
         <div class="cap dark" style="left:78%;top:9%;width:20%;height:38%;font-size:16px;padding:4px">Kopiuję go na pendrive z FAT32</div>
-        <div class="cap dark" style="left:28%;top:59%;width:20%;height:38%;font-size:16px;padding:4px">Plik zapisuje się odszyfro&shy;wany</div>
-        <div class="cap dark" style="left:78%;top:59%;width:20%;height:38%;font-size:16px;padding:4px">Plik zapisuje się odszyfro&shy;wany</div>
+        <div class="cap dark" style="left:28%;top:59%;width:20%;height:38%;font-size:14px;padding:4px">Plik zapisuje się odszyfrowany</div>
+        <div class="cap dark" style="left:78%;top:59%;width:20%;height:38%;font-size:14px;padding:4px">Plik zapisuje się odszyfrowany</div>
       </div>
       <div class="meme-src">mem „Gru's Plan”</div>
     </div>
@@ -725,9 +725,9 @@ table.cmp tr:last-child td{border-bottom:none}
   </table>
   <aside class="notes">
     <p>Zestawmy to w tabeli. BitLocker szyfruje wszystko, EFS – to, co wskażemy. BitLocker chroni przed kradzieżą sprzętu, EFS przed innymi użytkownikami tego samego systemu.</p>
-    <p>Najważniejszy wiersz to trzeci: po uruchomieniu systemu BitLocker jest „przezroczysty” – każde konto i każdy proces, łącznie z malware'em, widzi dane jawnie. EFS zostaje zamknięty dla wszystkich poza właścicielem i agentem odzyskiwania.</p>
+    <p>Najważniejszy wiersz to trzeci: po uruchomieniu systemu BitLocker jest „przezroczysty” – każde konto i każdy proces, łącznie z malware'em, widzi dane jawnie. Pliki EFS pozostają zamknięte dla wszystkich poza właścicielem i agentem odzyskiwania.</p>
     <p>Za to EFS zostawia jawne pliki tymczasowe, plik stronicowania i nazwy plików, a BitLocker szyfruje wszystko. Każdy ma też swój „koszmar”: przy BitLockerze to zgubiony klucz odzyskiwania, przy EFS – reset hasła bez kopii certyfikatu.</p>
-    <p>Wniosek nasuwa się sam: one się nie wykluczają. Każde łata dziurę drugiego.</p>
+    <p>Wniosek nasuwa się sam: one się nie wykluczają. Każdy łata dziury drugiego.</p>
   </aside>
 </section>
 
@@ -766,7 +766,7 @@ table.cmp tr:last-child td{border-bottom:none}
       <div class="box" style="text-align:left">☑ <b>TPM + PIN</b> na laptopach</div>
       <div class="box" style="text-align:left">☑ <b>XTS-AES 256</b> przez GPO / Intune</div>
       <div class="box" style="text-align:left">☑ EFS: <b>DRA</b> + kopia <b>.pfx</b> poza komputerem</div>
-      <div class="box" style="text-align:left">☑ Szyfruj <b>zanim</b> trafią tam dane</div>
+      <div class="box" style="text-align:left">☑ Szyfruj, <b>zanim</b> trafią tam dane</div>
       <div class="box" style="text-align:left">☑ Test odzyskiwania – zanim będzie potrzebny</div>
     </div>
     <div>
@@ -779,7 +779,7 @@ table.cmp tr:last-child td{border-bottom:none}
   </div>
   <aside class="notes">
     <p>Dobre praktyki w skrócie. Klucze odzyskiwania BitLockera centralnie – w Active Directory albo Entra ID. TPM z PIN-em na urządzeniach mobilnych. Wymuszenie algorytmu i trybu przez zasady grupy albo Intune.</p>
-    <p>Dla EFS: agent odzyskiwania i kopia certyfikatu w bezpiecznym miejscu – nie na tym samym dysku. Szyfrujemy nośnik zanim trafią na niego dane – inaczej pozostałości mogą zostać w nieużywanych sektorach, szczególnie na SSD.</p>
+    <p>Dla EFS: agent odzyskiwania i kopia certyfikatu w bezpiecznym miejscu – nie na tym samym dysku. Szyfrujemy nośnik, zanim trafią na niego dane – inaczej pozostałości mogą zostać w nieużywanych sektorach, szczególnie na SSD.</p>
     <p>I najważniejsze: przetestujcie odzyskiwanie, zanim będzie potrzebne. Klucz odzyskiwania na karteczce przyklejonej do laptopa to nie backup – to instrukcja obsługi dla złodzieja.</p>
   </aside>
 </section>
@@ -833,7 +833,7 @@ table.cmp tr:last-child td{border-bottom:none}
     </div>
   </div>
   <aside class="notes">
-    <p>Podsumowując – i rozwijając mózg krok po kroku. Brak szyfrowania to poziom zero. Hasło do Windowsa daje tylko złudzenie bezpieczeństwa. BitLocker z TPM to już realna ochrona przed kradzieżą. A pełna oświecona wersja to BitLocker z PIN-em, EFS tam, gdzie trzeba, i klucze odzyskiwania przechowywane centralnie.</p>
+    <p>Podsumowując – i rozwijając mózg krok po kroku. Brak szyfrowania to poziom zero. Hasło do Windowsa daje tylko złudzenie bezpieczeństwa. BitLocker z TPM to już realna ochrona przed kradzieżą. A w pełni oświecona wersja to BitLocker z PIN-em, EFS tam, gdzie trzeba, i klucze odzyskiwania przechowywane centralnie.</p>
     <p>Trzy zdania do zapamiętania: BitLocker chroni przed kimś, kto ma nasz sprzęt. EFS chroni przed kimś, kto ma konto na naszym komputerze. A szyfrowanie jest dokładnie tak dobre, jak zarządzanie kluczami – bo AES-a nikt nie łamie, za to klucze gubimy wszyscy.</p>
   </aside>
 </section>
@@ -847,7 +847,7 @@ table.cmp tr:last-child td{border-bottom:none}
   <h1 style="margin-top:30px;font-size:56px">Dziękuję! Pytania?</h1>
   <aside class="notes">
     <p>Dziękuję za uwagę. Mam nadzieję, że nikt nie zareaguje jak ta małpka – chętnie odpowiem na pytania.</p>
-    <p>Przykładowe pytania, które mogą paść: „Czy BitLocker spowalnia SSD?” – przy AES-NI praktycznie nie. „Czy Microsoft ma mój klucz?” – jeśli logujesz się kontem Microsoft i masz szyfrowanie urządzenia, kopia klucza odzyskiwania jest na Twoim koncie; można ją usunąć i przechowywać samodzielnie. „Czy można używać EFS bez BitLockera?” – można, ale pagefile, pliki tymczasowe i nazwy plików zostają jawne.</p>
+    <p>Przykładowe pytania, które mogą paść: „Czy BitLocker spowalnia SSD?” – przy AES-NI praktycznie nie. „Czy Microsoft ma mój klucz?” – jeśli logujesz się kontem Microsoft i masz szyfrowanie urządzenia, kopia klucza odzyskiwania jest na twoim koncie; można ją usunąć i przechowywać samodzielnie. „Czy można używać EFS bez BitLockera?” – można, ale pagefile, pliki tymczasowe i nazwy plików zostają jawne.</p>
   </aside>
 </section>
 
@@ -893,7 +893,10 @@ table.cmp tr:last-child td{border-bottom:none}
   const titleOf = i => {
     const s = slides[i];
     if (!s) return '— koniec —';
-    return (s.querySelector('h2,h1')?.textContent || '').trim().split('\n')[0];
+    const h = s.querySelector('h2,h1')?.cloneNode(true);
+    if (!h) return '';
+    h.querySelectorAll('small').forEach(el => el.remove());
+    return h.textContent.replace(/\s+/g, ' ').trim();
   };
 
   function show(i) {
