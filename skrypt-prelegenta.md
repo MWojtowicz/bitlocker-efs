@@ -24,13 +24,15 @@ Nas dziś interesuje trzeci stan: dane w spoczynku, czyli wszystko, co leży zap
 
 Kluczowa obserwacja: nośnik jest fizycznym przedmiotem. Można go zgubić, ukraść, wyrzucić przy wymianie sprzętu. I wtedy żadne mechanizmy systemu operacyjnego już nie działają, bo system… nie jest uruchomiony.
 
-## Slajd 4: Scenariusz nr 1  ·  ⏱ 1:15
+## Slajd 4: Scenariusz nr 1  ·  ⏱ 2:00
 
 Scenariusz numer jeden, klasyka: ktoś zostawia służbowego laptopa w pociągu albo w taksówce. Sprzęt jest najmniej ważny – laptop kosztuje kilka tysięcy złotych. Dane na nim mogą kosztować dużo więcej.
 
 Z perspektywy RODO zgubienie niezaszyfrowanego nośnika z danymi osobowymi to naruszenie, które trzeba zgłosić do UODO i często także osobom, których dane dotyczą. Jeżeli natomiast dane były skutecznie zaszyfrowane, ryzyko dla tych osób jest znikome i obowiązek zawiadamiania ich zwykle odpada.
 
-Czyli szyfrowanie to nie tylko technika – to też bardzo konkretna oszczędność stresu i pieniędzy.
+A to nie jest teoria. W marcu 2021 roku jeden z pasażerów pociągu PKP opublikował na Facebooku zdjęcie: znana posłanka opozycji zostawiła na stoliku włączony, odblokowany tablet i poszła do toalety na kilka minut. Według komentujących na ekranie widać było służbową pocztę i dokumenty. Nazwisko posłanki nie zostało oficjalnie podane. Piotr Konieczny z Niebezpiecznika komentował wtedy, że pozostawienie urządzenia bez nadzoru z odblokowanym ekranem to bardzo ryzykowny ruch – w kilka minut można nie tylko skopiować dane, ale i tak przekonfigurować urządzenie, żeby dalej wysyłało informacje atakującemu.
+
+I tu ważna uwaga na resztę prezentacji: w tym przypadku żadne szyfrowanie dysku by nie pomogło. BitLocker chroni urządzenie wyłączone albo zablokowane. Po odblokowaniu wszystko jest jawne. Dlatego pierwszy, darmowy krok to nawyk Win+L za każdym razem, gdy odchodzimy od komputera.
 
 ## Slajd 5: „Ale przecież mam hasło do Windowsa!”  ·  ⏱ 1:30
 

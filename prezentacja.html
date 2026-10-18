@@ -171,22 +171,30 @@ table.cmp tr:last-child td{border-bottom:none}
 </section>
 
 <!-- ===================================================== 4 -->
-<section class="slide" data-time="1:15">
+<section class="slide" data-time="2:00">
   <h2>Scenariusz nr 1</h2>
-  <div class="grow row" style="justify-content:center">
+  <div class="grow row" style="justify-content:center;gap:36px">
     <div>
-      <div class="meme" style="width:900px">
+      <div class="meme" style="width:640px">
         <img src="img/memy/this-is-fine.jpg" alt="Mem: This is fine">
-        <div class="cap" style="left:2%;top:2%;width:46%;height:26%;font-size:32px">Laptop służbowy<br>zostawiony w pociągu</div>
-        <div class="cap" style="left:52%;top:2%;width:46%;height:26%;font-size:32px">Dysk bez szyfrowania</div>
+        <div class="cap" style="left:2%;top:2%;width:46%;height:28%;font-size:24px">Laptop służbowy<br>zostawiony w pociągu</div>
+        <div class="cap" style="left:52%;top:2%;width:46%;height:28%;font-size:24px">Dysk bez szyfrowania</div>
       </div>
       <div class="meme-src">mem „This is fine” (KC Green)</div>
+    </div>
+    <div class="card col" style="width:440px;gap:12px;border-color:var(--gold)">
+      <div class="kicker" style="margin:0;color:var(--gold)">Prawdziwy przypadek · III 2021</div>
+      <div style="font-size:23px;line-height:1.35"><b>🚆 Posłanka</b> zostawia w pociągu PKP <b>odblokowany tablet</b> i idzie do toalety</div>
+      <div style="font-size:20px;line-height:1.35" class="muted">📸 współpasażer robi zdjęcie ekranu → Facebook</div>
+      <div class="box warn" style="font-size:18px;text-align:left">🔓 Tu nie pomoże żadne szyfrowanie dysku<small>po odblokowaniu dane są jawne – liczy się blokada ekranu (Win + L)</small></div>
+      <div class="caption">INN Poland, 10.03.2021 · komentarz: P. Konieczny, Niebezpiecznik</div>
     </div>
   </div>
   <aside class="notes">
     <p>Scenariusz numer jeden, klasyka: ktoś zostawia służbowego laptopa w pociągu albo w taksówce. Sprzęt jest najmniej ważny – laptop kosztuje kilka tysięcy złotych. Dane na nim mogą kosztować dużo więcej.</p>
     <p>Z perspektywy RODO zgubienie niezaszyfrowanego nośnika z danymi osobowymi to naruszenie, które trzeba zgłosić do UODO i często także osobom, których dane dotyczą. Jeżeli natomiast dane były skutecznie zaszyfrowane, ryzyko dla tych osób jest znikome i obowiązek zawiadamiania ich zwykle odpada.</p>
-    <p>Czyli szyfrowanie to nie tylko technika – to też bardzo konkretna oszczędność stresu i pieniędzy.</p>
+    <p>A to nie jest teoria. W marcu 2021 roku jeden z pasażerów pociągu PKP opublikował na Facebooku zdjęcie: znana posłanka opozycji zostawiła na stoliku włączony, odblokowany tablet i poszła do toalety na kilka minut. Według komentujących na ekranie widać było służbową pocztę i dokumenty. Nazwisko posłanki nie zostało oficjalnie podane. Piotr Konieczny z Niebezpiecznika komentował wtedy, że pozostawienie urządzenia bez nadzoru z odblokowanym ekranem to bardzo ryzykowny ruch – w kilka minut można nie tylko skopiować dane, ale i tak przekonfigurować urządzenie, żeby dalej wysyłało informacje atakującemu.</p>
+    <p>I tu ważna uwaga na resztę prezentacji: w tym przypadku żadne szyfrowanie dysku by nie pomogło. BitLocker chroni urządzenie wyłączone albo zablokowane. Po odblokowaniu wszystko jest jawne. Dlatego pierwszy, darmowy krok to nawyk Win+L za każdym razem, gdy odchodzimy od komputera.</p>
   </aside>
 </section>
 
@@ -855,6 +863,7 @@ table.cmp tr:last-child td{border-bottom:none}
 <section class="slide" data-time="—">
   <h2>Źródła</h2>
   <div class="col" style="font-size:17px;gap:10px;color:var(--muted)">
+    <div>• INN Poland, <i>Znana posłanka zostawiła włączony tablet i wyszła do WC</i>, 10.03.2021 (komentarz: P. Konieczny, Niebezpiecznik.pl)</div>
     <div>• Microsoft Learn – <i>BitLocker overview</i>, <i>BitLocker countermeasures</i>, <i>BitLocker recovery overview</i></div>
     <div>• Microsoft Learn – <i>Encrypting File System</i>, dokumentacja polecenia <code>cipher</code>, <i>Personal Data Encryption</i></div>
     <div>• J. A. Halderman i in., <i>Lest We Remember: Cold Boot Attacks on Encryption Keys</i>, USENIX Security 2008</div>
