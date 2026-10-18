@@ -929,19 +929,15 @@ table.cmp tr:last-child td{border-bottom:none}
     updateRemote();
   }
 
-  // ---------- pilot z telefonu: WebRTC przez publiczny broker PeerJS ----------
+  // ---------- pilot z telefonu: przekaźnik ntfy.sh (zwykłe HTTPS, bez połączenia P2P) ----------
+  // telefon wysyła {cmd:'go', n}, prezentacja odsyła {n, elapsed}; notatki telefon czyta sam z prezentacja.html
   const REMOTE_URL = location.protocol === 'file:'
     ? 'https://mwojtowicz.github.io/bitlocker-efs/remote.html'
     : new URL('remote.html', location.href).href;
+  const RELAY = 'https://ntfy.sh/';
   const remotePanel = document.getElementById('remotePanel');
-  const conns = new Set();
-  let peer = null;
+  let code = null, events = null, fromRemote = false, pubTimer = null;
 
-  const loadScript = src => new Promise((ok, fail) => {
-    const el = document.createElement('script');
-    el.src = src; el.onload = ok; el.onerror = fail;
-    document.head.appendChild(el);
-  });
   const store = {
     get: k => { try { return localStorage.getItem(k); } catch { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
@@ -952,65 +948,51 @@ table.cmp tr:last-child td{border-bottom:none}
     const el = document.getElementById('rstate');
     el.textContent = txt; el.classList.toggle('ok', !!ok);
   };
+  const loadScript = src => new Promise((ok, fail) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = ok; el.onerror = fail;
+    document.head.appendChild(el);
+  });
 
   async function toggleRemote(showPanel = true) {
     if (showPanel) remotePanel.classList.toggle('on');
-    if (peer) return;
+    if (code) return;
     try { sessionStorage.setItem('remoteOn', '1'); } catch {}
-    try {
-      await Promise.all([
-        loadScript('https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js'),
-        loadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'),
-      ]);
-    } catch { setState('Nie udało się pobrać bibliotek – brak internetu?'); return; }
-    startPeer(store.get('remoteCode') || newCode(), 0);
-  }
-
-  function startPeer(code, attempt) {
+    code = store.get('remoteCode') || newCode();
     store.set('remoteCode', code);
     document.getElementById('rcode').textContent = code;
-    const qr = document.getElementById('qr');
-    qr.innerHTML = '';
-    new QRCode(qr, { text: `${REMOTE_URL}#${code}`, width: 236, height: 236, correctLevel: QRCode.CorrectLevel.M });
-
-    peer = new Peer('bitlocker-efs-' + code);
-    peer.on('open', () => setState('Czekam na telefon…'));
-    peer.on('connection', c => {
-      c.on('open', () => {
-        conns.add(c);
-        if (!start) start = Date.now();
-        setState(`Połączono (${conns.size}) ✓ – R chowa panel`, true);
-        updateRemote();
-      });
-      c.on('data', m => {
-        if (m?.cmd === 'next') show(cur + 1);
-        else if (m?.cmd === 'prev') show(cur - 1);
-        else if (m?.cmd === 'go') show(m.n);
-        else if (m?.cmd === 'reset') { start = Date.now(); updateRemote(); }
-      });
-      c.on('close', () => { conns.delete(c); setState(conns.size ? `Połączono (${conns.size}) ✓` : 'Telefon rozłączony – czekam…', conns.size > 0); });
-    });
-    peer.on('disconnected', () => { setState('Utracono serwer – ponawiam…'); setTimeout(() => peer && !peer.destroyed && peer.reconnect(), 2000); });
-    peer.on('error', err => {
-      if (err.type === 'unavailable-id') {
-        // po przeładowaniu strony serwer przez chwilę pamięta stary identyfikator
-        peer.destroy();
-        if (attempt < 5) { setState('Kod jeszcze zajęty – ponawiam…'); setTimeout(() => startPeer(code, attempt + 1), 3000); }
-        else startPeer(newCode(), 0);
-      } else if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
-        setState('Błąd sieci – ponawiam…');
-      }
-    });
+    try {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
+      new QRCode(document.getElementById('qr'), { text: `${REMOTE_URL}#${code}`, width: 236, height: 236, correctLevel: QRCode.CorrectLevel.M });
+    } catch { document.getElementById('qr').textContent = REMOTE_URL; }
+    listen();
   }
 
-  function updateRemote() {
-    const msg = {
-      cmd: 'state', n: cur, total: slides.length, time: slides[cur].dataset.time,
-      title: titleOf(cur), next: titleOf(cur + 1), notes: notesOf(cur),
-      elapsed: start ? Date.now() - start : null,
+  function listen() {
+    events?.close();
+    // EventSource sam wznawia połączenie po zerwaniu
+    events = new EventSource(`${RELAY}bitlocker-efs-${code}-cmd/sse`);
+    events.onopen = () => setState('Czekam na telefon…');
+    events.onerror = () => setState('Brak połączenia z ntfy.sh – ponawiam…');
+    events.onmessage = e => {
+      let m;
+      try { m = JSON.parse(JSON.parse(e.data).message); } catch { return; }
+      setState('Telefon połączony ✓ – R chowa panel', true);
+      if (!start) start = Date.now();
+      if (m.cmd === 'go') { fromRemote = true; show(m.n); fromRemote = false; }
+      else if (m.cmd === 'reset') start = Date.now();
+      else if (m.cmd === 'hello') publishState(0);
     };
-    conns.forEach(c => c.open && c.send(msg));
   }
+
+  function publishState(delay = 150) {
+    clearTimeout(pubTimer);
+    pubTimer = setTimeout(() => fetch(`${RELAY}bitlocker-efs-${code}-state`, {
+      method: 'POST', body: JSON.stringify({ n: cur, elapsed: start ? Date.now() - start : null }),
+    }).catch(() => {}), delay);
+  }
+  // zmiana z klawiatury/myszy → powiadom telefon; zmiana z telefonu telefon już zna
+  const updateRemote = () => { if (code && !fromRemote) publishState(); };
 
   function openPresenter() {
     presenter = window.open('', 'prelegent', 'width=900,height=700');
@@ -1059,8 +1041,6 @@ table.cmp tr:last-child td{border-bottom:none}
   addEventListener('resize', fit);
   deck.addEventListener('click', e => { if (!e.target.closest('a')) show(cur + (e.clientX > innerWidth / 3 ? 1 : -1)); });
 
-  // zwolnij kod na serwerze od razu, żeby po przeładowaniu telefon połączył się ponownie
-  addEventListener('pagehide', () => peer?.destroy());
   try { if (sessionStorage.getItem('remoteOn')) toggleRemote(false); } catch {}
 
   setTimeout(() => document.getElementById('help').style.opacity = 0, 8000);

@@ -22,6 +22,7 @@ h1{font-size:22px;line-height:1.25;margin:12px 0 8px}
 #notes{flex:1;overflow:auto;font-size:var(--fs,18px);line-height:1.5;-webkit-user-select:text;user-select:text;padding-right:4px}
 #notes p{margin-bottom:10px}
 #next{color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding:8px 0}
+#status{color:var(--muted);font-size:12px;padding:0 0 8px}
 #btns{display:flex;gap:12px;height:120px}
 button{border:0;border-radius:18px;font:700 22px var(--sans);color:#fff;background:var(--panel);border:1px solid var(--line)}
 button:active{filter:brightness(1.4)}
@@ -51,64 +52,77 @@ button:disabled{opacity:.35}
   <h1 id="title">Łączenie…</h1>
   <div id="notes"></div>
   <div id="next"></div>
+  <div id="status">…</div>
   <div id="btns"><button id="prev" disabled>◀</button><button id="fwd" disabled>Dalej ▶</button></div>
   <div id="tools"><button id="smaller">A−</button><button id="bigger">A+</button><button id="reset">⏱ od zera</button><button id="first">⏮ start</button></div>
 </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  let code = location.hash.slice(1).toUpperCase(), peer = null, conn = null, retry = null, base = null, total = 0;
+  const RELAY = 'https://ntfy.sh/';
+  let code = location.hash.slice(1).toUpperCase(), events = null, base = null, cur = 0, slides = [], deckSeen = false;
   let fs = 18;
 
-  function setOnline(ok) {
-    $('dot').classList.toggle('ok', ok);
-    $('prev').disabled = $('fwd').disabled = !ok;
-    if (!ok && !base) $('title').textContent = 'Łączenie z prezentacją…';
-  }
-  function scheduleRetry() {
-    setOnline(false);
-    clearTimeout(retry);
-    retry = setTimeout(connect, 2000);
-  }
-
-  function connect() {
-    clearTimeout(retry);
-    if (conn?.open) return;
-    if (!peer || peer.destroyed) {
-      peer = new Peer();
-      peer.on('open', connect);
-      peer.on('disconnected', () => setTimeout(() => !peer.destroyed && peer.reconnect(), 1000));
-      // peer-unavailable = prezentacja jeszcze nie nasłuchuje (nie wciśnięto R)
-      peer.on('error', scheduleRetry);
-      return;
-    }
-    if (!peer.open) return;
-    conn = peer.connect('bitlocker-efs-' + code, { reliable: true });
-    conn.on('open', () => setOnline(true));
-    conn.on('data', render);
-    conn.on('close', scheduleRetry);
-    conn.on('error', scheduleRetry);
+  // notatki i tytuły bierzemy prosto z prezentacji – przez przekaźnik idzie tylko numer slajdu
+  async function loadDeck() {
+    const html = await (await fetch('prezentacja.html', { cache: 'no-cache' })).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    slides = [...doc.querySelectorAll('.slide')].map(s => {
+      const h = s.querySelector('h2,h1')?.cloneNode(true);
+      h?.querySelectorAll('small').forEach(el => el.remove());
+      return {
+        title: h ? h.textContent.replace(/\s+/g, ' ').trim() : '',
+        notes: s.querySelector('aside.notes')?.innerHTML || '',
+        time: s.dataset.time || '',
+      };
+    });
   }
 
-  function render(m) {
-    if (m?.cmd !== 'state') return;
-    total = m.total;
-    $('pos').textContent = `${m.n + 1}/${m.total}`;
-    $('plan').textContent = `plan ${m.time}`;
-    $('title').textContent = m.title;
-    $('notes').innerHTML = m.notes;
+  function status(txt, ok) {
+    $('status').textContent = txt;
+    $('dot').classList.toggle('ok', !!ok);
+  }
+
+  function render(n) {
+    cur = Math.max(0, Math.min(slides.length - 1, n));
+    const s = slides[cur];
+    $('pos').textContent = `${cur + 1}/${slides.length}`;
+    $('plan').textContent = `plan ${s.time}`;
+    $('title').textContent = s.title;
+    $('notes').innerHTML = s.notes;
     $('notes').scrollTop = 0;
-    $('next').textContent = 'Następny: ' + m.next;
-    if (m.elapsed != null) base = Date.now() - m.elapsed;
+    $('next').textContent = 'Następny: ' + (slides[cur + 1]?.title || '— koniec —');
   }
-  const send = msg => conn?.open && conn.send(msg);
 
-  $('fwd').onclick = () => send({ cmd: 'next' });
-  $('prev').onclick = () => send({ cmd: 'prev' });
-  $('first').onclick = () => send({ cmd: 'go', n: 0 });
-  $('reset').onclick = () => send({ cmd: 'reset' });
+  async function send(msg) {
+    try {
+      const r = await fetch(`${RELAY}bitlocker-efs-${code}-cmd`, { method: 'POST', body: JSON.stringify(msg) });
+      if (!r.ok) throw new Error(r.status === 429 ? 'limit ntfy.sh – odczekaj chwilę' : 'HTTP ' + r.status);
+      if (!deckSeen) status('Wysłano – czekam na odpowiedź prezentacji…');
+    } catch (e) { status('Nie wysłano: ' + e.message); }
+  }
+
+  function listen() {
+    events?.close();
+    events = new EventSource(`${RELAY}bitlocker-efs-${code}-state/sse`);
+    events.onopen = () => { if (!deckSeen) status('Szukam prezentacji (wciśnij R na komputerze)…'); send({ cmd: 'hello' }); };
+    events.onerror = () => status('Brak połączenia z ntfy.sh – ponawiam…');
+    events.onmessage = e => {
+      let m;
+      try { m = JSON.parse(JSON.parse(e.data).message); } catch { return; }
+      deckSeen = true;
+      status('Połączono z prezentacją', true);
+      if (m.elapsed != null) base = Date.now() - m.elapsed;
+      render(m.n);
+    };
+  }
+
+  const go = n => { if (!slides.length) return; render(n); send({ cmd: 'go', n: cur }); };
+  $('fwd').onclick = () => go(cur + 1);
+  $('prev').onclick = () => go(cur - 1);
+  $('first').onclick = () => go(0);
+  $('reset').onclick = () => { base = Date.now(); send({ cmd: 'reset' }); };
   const font = d => { fs = Math.max(13, Math.min(30, fs + d)); document.documentElement.style.setProperty('--fs', fs + 'px'); };
   $('smaller').onclick = () => font(-2);
   $('bigger').onclick = () => font(2);
@@ -120,20 +134,23 @@ button:disabled{opacity:.35}
   }, 1000);
 
   // ekran nie gaśnie w trakcie prezentacji (Safari 16.4+)
-  let lock = null;
-  const wake = async () => { try { lock = await navigator.wakeLock?.request('screen'); } catch {} };
-  // iOS usypia połączenie, gdy Safari idzie w tło – po powrocie łączymy od nowa
+  const wake = async () => { try { await navigator.wakeLock?.request('screen'); } catch {} };
+  // iOS zrywa połączenia, gdy Safari idzie w tło – po powrocie łączymy od nowa
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible' || !code) return;
+    if (document.visibilityState !== 'visible' || !code || !slides.length) return;
     wake();
-    if (!conn?.open) connect();
+    listen();
   });
 
-  function start() {
+  async function start() {
     $('join').classList.add('hidden');
     $('app').classList.remove('hidden');
     wake();
-    connect();
+    status('Wczytuję notatki…');
+    try { await loadDeck(); } catch { status('Nie udało się wczytać prezentacja.html'); return; }
+    render(0);
+    $('prev').disabled = $('fwd').disabled = false;
+    listen();
   }
   $('join').onsubmit = e => {
     e.preventDefault();
